@@ -734,6 +734,27 @@ def test_push_pop():
     my_assert(cpu.d == 0x12)
     my_assert(cpu.e == 0x34)
 
+    # PUSH IY
+    reset_mem()
+    cpu.reset()
+    cpu.sp = 0x3fff
+    cpu.f = 0
+    cpu.ix = 0x4321
+    ram0[0] = 0xdd
+    ram0[1] = 0xe5
+    ram0[2] = 0xfd
+    ram0[3] = 0xe1
+    cpu.step()
+    my_assert(cpu.f == 0x00)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.sp == 0x3ffd)
+    my_assert(cpu.read_mem_16(0x3ffd) == 0x4321)
+    cpu.step()
+    my_assert(cpu.f == 0x00)
+    my_assert(cpu.pc == 4)
+    my_assert(cpu.sp == 0x3fff)
+    my_assert(cpu.iy == 0x4321)
+
 def test_jr():
     # JR -2
     reset_mem()
@@ -986,6 +1007,21 @@ def test_ex():
     my_assert(cpu.h_ == 0x50)
     my_assert(cpu.l == 0x29)
     my_assert(cpu.l_ == 0x20)
+
+    # EX AF
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x50
+    cpu.a_ = 0x10
+    cpu.f = 0x20
+    cpu.f_ = 0x29
+    ram0[0] = 0x08
+    cpu.step()
+    my_assert(cpu.pc == 1)
+    my_assert(cpu.a == 0x10)
+    my_assert(cpu.a_ == 0x50)
+    my_assert(cpu.f == 0x29)
+    my_assert(cpu.f_ == 0x20)
 
 def test_rrca():
     # RRCA
