@@ -970,6 +970,23 @@ def test_ex():
     my_assert(cpu.l == 0xdd)
     my_assert(cpu.read_mem_16(0x1000) == 0x5020)
 
+    # EXX
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x50
+    cpu.h_ = 0x10
+    cpu.l = 0x20
+    cpu.l_ = 0x29
+    cpu.f = 123
+    ram0[0] = 0xd9
+    cpu.step()
+    my_assert(cpu.f == 123)
+    my_assert(cpu.pc == 1)
+    my_assert(cpu.h == 0x10)
+    my_assert(cpu.h_ == 0x50)
+    my_assert(cpu.l == 0x29)
+    my_assert(cpu.l_ == 0x20)
+
 def test_rrca():
     # RRCA
     reset_mem()
