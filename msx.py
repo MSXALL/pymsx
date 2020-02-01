@@ -235,7 +235,6 @@ def get_keyboard():
 
     if kb_last_c == None:
         kb_last_c = dk.getch(False)
-        print('lastc', kb_last_c, file=sys.stderr)
 
         if kb_last_c == -1:
             kb_last_c = None
@@ -245,6 +244,7 @@ def get_keyboard():
 
             if lrc:
                 kb_row_nr, kb_row, kb_shift = lrc
+                print('lastc %c %s' % (kb_last_c, "{0:b}".format(kb_row)), file=sys.stderr)
                 print('keyb', lrc, file=sys.stderr)
 
             else:

@@ -15,6 +15,7 @@ class screen_kb(threading.Thread):
         self.cv = threading.Condition()
         self.stop_flag = False
         self.cpu = cpu
+        self.vdp_read_ahead = 0
 
         stdscr = curses.initscr()
         curses.start_color()
@@ -187,6 +188,7 @@ class screen_kb(threading.Thread):
             self.vdp_rw_pointer &= 0x3fff
             self.vdp_addr_state = False
             self.refresh()
+            self.vdp_read_ahead = v
 
         elif a == 0x99:
             if self.vdp_addr_state == False:
@@ -200,10 +202,21 @@ class screen_kb(threading.Thread):
                 else:
                     self.vdp_rw_pointer = ((v & 63) << 8) + self.vdp_addr_b1
 
+                    if (v & 64) == 0:
+                        self.vdp_read_ahead = self.ram[self.vdp_rw_pointer]
+                        self.vdp_rw_pointer += 1
+                        self.vdp_rw_pointer &= 0x3fff
+
             self.vdp_addr_state = not self.vdp_addr_state
 
     def read_io(self, a):
         rc = 0
+
+        if a == 0x98:
+            rc = self.vdp_read_ahead
+            self.vdp_read_ahead = self.ram[self.vdp_rw_pointer]
+            self.vdp_rw_pointer += 1
+            self.vdp_rw_pointer &= 0x3fff
 
         if a == 0x99:
             rc = self.registers[2]
