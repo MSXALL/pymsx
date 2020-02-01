@@ -51,6 +51,9 @@ def write_scc(s, a, v):
     if (offset & 0x1000) == 0x1000: # 0x5000, 0x7000 and so on
         s[bank] = v
 
+    else:
+        self.debug('SCC write to %04x not understood' % a)
+
 def read_scc(s, a):
     bank = (a >> 13) - 2
     offset = a & 0x1fff

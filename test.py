@@ -92,6 +92,22 @@ def test_ld():
     my_assert(cpu.f == 0)
     my_assert(cpu.pc == 2)
 
+    # LD (HL),*
+    reset_mem()
+    cpu.reset()
+    cpu.f = 0
+    ram0[0] = 0x21 # LD HL,0101
+    ram0[1] = 0x01
+    ram0[2] = 0x01
+    ram0[3] = 0x36 # LD (HL),*
+    ram0[4] = 0xff
+    cpu.step()
+    cpu.step()
+    my_assert(cpu.a == 0xff)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 5)
+    my_assert(cpu.read_mem(0x0101) == 0xff)
+
     # LD HL,**
     reset_mem()
     cpu.reset()
@@ -560,6 +576,18 @@ def test_or():
     my_assert(cpu.f == (0x80 & 0xd7))
     my_assert(cpu.pc == 1)
 
+    # OR *
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xf0
+    cpu.f = 0
+    ram0[0] = 0xf6
+    ram0[1] = 0x21
+    cpu.step()
+    my_assert(cpu.a == 0xf1)
+    my_assert(cpu.f == (0x80 & 0xd7))
+    my_assert(cpu.pc == 2)
+
 def test_and():
     # AND B
     reset_mem()
@@ -572,6 +600,18 @@ def test_and():
     my_assert(cpu.a == 0x20)
     my_assert(cpu.f == (0x10 & 0xd7))
     my_assert(cpu.pc == 1)
+
+    # AND *
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xf0
+    cpu.f = 0
+    ram0[0] = 0xe6
+    ram0[1] = 0x21
+    cpu.step()
+    my_assert(cpu.a == 0x20)
+    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.pc == 2)
 
 def test_xor():
     # XOR B
@@ -769,6 +809,21 @@ def test_inc():
     my_assert(cpu.e == 0x34)
     my_assert(cpu.f == 123)
     my_assert(cpu.pc == 1)
+
+    # INC hl
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x22
+    cpu.l = 0x33
+    cpu.f = 0
+    ram0[0] = 0x34
+    ram0[0x2233] = 0xff
+    cpu.step()
+    my_assert(cpu.h == 0x22)
+    my_assert(cpu.l == 0x33)
+    my_assert(cpu.pc == 1)
+    my_assert(cpu.read_mem(0x2233) == 0x00)
+    my_assert(cpu.f == (0x50 & 0xd7))
 
 def test_dec():
     # DEC b
