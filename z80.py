@@ -1662,19 +1662,19 @@ class z80:
         value = v + self.get_flag_c()
         after = before - value
 
-        self.set_flag_c(after >= 0x10000)
+        self.set_flag_c((after & 0x10000) == 0x10000)
         self.set_flag_z((after & 0xffff) == 0)
         self.set_flag_n(True)
         self.set_flag_s((after & 0x8000) == 0x8000)
 
         before = self.compl16(before)
         value = self.compl16(value)
-        after = self.compl16(after & 0xff)
+        after = self.compl16(after & 0xffff)
         self.set_flag_pv((before >= 0 and value >= 0 and after < 0) or (before < 0 and value < 0 and after >= 0))
  
         self.set_pair(2, after & 0xffff)
 
-        self.debug('SUB %s' % name)
+        self.debug('SUB HL,%s' % name)
 
     def _neg(self):
         org_a = self.compl8(self.a)
