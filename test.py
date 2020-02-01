@@ -765,6 +765,23 @@ def test_out_in():
     my_assert(cpu.pc == 2)
     my_assert(io[0x00] == 0xf0)
 
+#    # IN B,(C)
+#    reset_mem()
+#    cpu.reset()
+#    cpu.c = 0x23
+#    cpu.f = 0xff
+#    io[0x23] = 0x45
+#    ram0[0] = 0xed
+#    ram0[1] = 0x40
+#    cpu.step()
+#    my_assert(cpu.b == 0x45)
+#    my_assert(cpu.get_flag_c() == True)
+#    my_assert(cpu.get_flag_n() == False)
+#    my_assert(cpu.get_flag_pv() == False)
+#    my_assert(cpu.get_flag_z() == False)
+#    my_assert(cpu.get_flag_s() == False)
+#    my_assert(cpu.pc == 2)
+
 def test_sla():
     # SLA B
     reset_mem()
@@ -1022,7 +1039,7 @@ def test_dec():
     my_assert(cpu.f == (0x17 & 0xd7))
     my_assert(cpu.pc == 1)
 
-def test_rlca_rlc_rl():
+def test_rlca_rlc_rl_rla():
     # RLCA
     reset_mem()
     cpu.reset()
@@ -1057,6 +1074,17 @@ def test_rlca_rlc_rl():
     my_assert(cpu.b == 0xe3)
     my_assert(cpu.f == (0x80 & 0xd7))
     my_assert(cpu.pc == 2)
+
+    # RLA
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xe1
+    cpu.f = 1
+    ram0[0] = 0x17
+    cpu.step()
+    my_assert(cpu.a == 0xc3)
+    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.pc == 1)
 
 def test_di_ei():
     # DI
@@ -1259,7 +1287,7 @@ test_nop()
 test_or()
 test_out_in()
 test_push_pop()
-test_rlca_rlc_rl()
+test_rlca_rlc_rl_rla()
 test_rr()
 test_rrca()
 test_rst()
