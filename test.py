@@ -850,6 +850,17 @@ def test_dec():
     my_assert(cpu.f == 123)
     my_assert(cpu.pc == 1)
 
+    # DEC a
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x80
+    cpu.f = 1
+    ram0[0] = 0x3d
+    cpu.step()
+    my_assert(cpu.a == 0x7f)
+    my_assert(cpu.f == (0x17 & 0xd7))
+    my_assert(cpu.pc == 1)
+
 def test_rlca_rlc():
     # RLCA
     reset_mem()
@@ -963,6 +974,18 @@ def test_rst():
     ram0[0] = 0xd7
     cpu.step()
     my_assert(cpu.pc == 0x10)
+    my_assert(cpu.f == 123)
+    my_assert(cpu.sp == 0x3ffd)
+    my_assert(cpu.read_mem_16(0x3ffd) == 0x001)
+
+    # RST
+    reset_mem()
+    cpu.reset()
+    cpu.f = 123
+    cpu.sp = 0x3fff
+    ram0[0] = 0xdf
+    cpu.step()
+    my_assert(cpu.pc == 0x18)
     my_assert(cpu.f == 123)
     my_assert(cpu.sp == 0x3ffd)
     my_assert(cpu.read_mem_16(0x3ffd) == 0x001)
