@@ -1004,7 +1004,7 @@ def test_dec():
     my_assert(cpu.f == (0x17 & 0xd7))
     my_assert(cpu.pc == 1)
 
-def test_rlca_rlc():
+def test_rlca_rlc_rl():
     # RLCA
     reset_mem()
     cpu.reset()
@@ -1026,6 +1026,18 @@ def test_rlca_rlc():
     cpu.step()
     my_assert(cpu.b == 0xc3)
     my_assert(cpu.f == (0x85 & 0xd7))
+    my_assert(cpu.pc == 2)
+
+    # RL B
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x71
+    cpu.f = 1
+    ram0[0] = 0xcb
+    ram0[1] = 0x10
+    cpu.step()
+    my_assert(cpu.b == 0xe3)
+    my_assert(cpu.f == (0x80 & 0xd7))
     my_assert(cpu.pc == 2)
 
 def test_di_ei():
@@ -1229,7 +1241,7 @@ test_nop()
 test_or()
 test_out_in()
 test_push_pop()
-test_rlca_rlc()
+test_rlca_rlc_rl()
 test_rr()
 test_rrca()
 test_rst()
