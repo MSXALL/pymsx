@@ -305,7 +305,7 @@ class z80:
                     self._ret(self.get_flag_c(), 'C')
 
                 elif major == 0x0e:
-                    self._ret(self.get_flag_pe(), 'P')
+                    self._ret(not self.get_flag_s(), 'P')
 
                 elif major == 0x0f:
                     self._ret(self.get_flag_s(), 'M')
@@ -1224,12 +1224,22 @@ class z80:
         minor1 = instr & 8
         minor2 = instr & 7
 
-        if major == 0x0e:
+        if major == 0x02:
+            if minor == 0x01:  # LD IY,**
+                self._ld_iy()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x0e:
             if minor == 0x01:  # POP IY
                 self._pop_iy()
 
             elif minor == 0x05:  # PUSH IY
                 self._push_iy()
+
+            elif minor == 0x09:  # JP (IY)
+                self._jp_ref_iy()
 
             else:
                 self.ui(ui)
@@ -1338,6 +1348,9 @@ class z80:
             a = self.read_pc_inc_16()
             self.write_mem_16(a, self.sp)
             self.debug('LD (%04x), SP' % a)
+
+        elif instr == 0x79 or instr == 0x69 or instr == 0x59 or instr == 0x49:
+            self._out_c(major - 4)
 
         elif instr == 0x7b:
             a = self.read_pc_inc_16()
@@ -1707,6 +1720,12 @@ class z80:
 
         self.debug('LD ix,**')
 
+    def _ld_iy(self):
+        v = self.read_pc_inc_16()
+        self.iy = v
+
+        self.debug('LD iy,**')
+
     def _ld_ix_im(self):
         offset = self.read_pc_inc()
 
@@ -1721,3 +1740,27 @@ class z80:
 
         self.debug('INC IX')
 
+    def _out_c(self, which):
+        if which == 0:
+            v = self.c
+            name = 'C'
+        elif which == 1:
+            v = self.e
+            name = 'E'
+        elif which == 2:
+            v = self.l
+            name = 'L'
+        elif which == 3:
+            v = self.a
+            name = 'A'
+        else:
+            self.ui(-1)
+
+        self.out(self.c, v)
+
+        self.debug('OUT (C), %s' % name)
+
+    def _jp_ref_iy(self):
+        self.pc = self.read_mem_16(self.iy)
+
+        self.debug('JP (IY)')
