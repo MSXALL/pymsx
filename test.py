@@ -163,6 +163,53 @@ def test_ld():
     my_assert(cpu.f == 0)
     my_assert(cpu.sp == 0x1021)
 
+    # LD (BC),A
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x10
+    cpu.c = 0x21
+    cpu.a = 0x34
+    cpu.f = 0
+    ram0[0] = 0x02
+    cpu.step()
+    my_assert(cpu.f == 0)
+    my_assert(cpu.read_mem(0x1021) == 0x34)
+
+    # LD (**),HL
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x77
+    cpu.l = 0x22
+    cpu.write_mem_16(0x1000, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0x22
+    ram0[1] = 0x00
+    ram0[2] = 0x10
+    cpu.step()
+    my_assert(cpu.h == 0x77)
+    my_assert(cpu.l == 0x22)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.read_mem_16(0x1000) == 0x7722)
+
+    # LD (**),A
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x77
+    cpu.l = 0x22
+    cpu.a = 213
+    cpu.write_mem_16(0x1000, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0x32
+    ram0[1] = 0x00
+    ram0[2] = 0x10
+    cpu.step()
+    my_assert(cpu.h == 0x77)
+    my_assert(cpu.l == 0x22)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.read_mem(0x1000) == 213)
+
 def test_jp():
     # JP **
     reset_mem()
