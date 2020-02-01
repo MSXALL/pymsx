@@ -1264,6 +1264,37 @@ def test_bit():
     my_assert(cpu.get_flag_h() == True)
     my_assert(cpu.get_flag_z() == False)
 
+def test_ldir():
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x00
+    cpu.c = 0x08
+    cpu.d = 0x10
+    cpu.e = 0x00
+    cpu.h = 0x20
+    cpu.l = 0x00
+    cpu.f = 0xff
+    for i in range(0x2000, 0x2008):
+        ram0[i] = i & 0xff
+    ram0[0] = 0xed
+    ram0[1] = 0xb0
+    cpu.step()
+    my_assert(cpu.b == 0)
+    my_assert(cpu.c == 0)
+    my_assert(cpu.d == 0x10)
+    my_assert(cpu.e == 0x08)
+    my_assert(cpu.h == 0x20)
+    my_assert(cpu.l == 0x08)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == True)
+    my_assert(cpu.get_flag_n() == False)
+    my_assert(cpu.get_flag_pv() == False)
+    my_assert(cpu.get_flag_h() == False)
+    my_assert(cpu.get_flag_z() == True)
+    my_assert(cpu.get_flag_s() == True)
+    for i in range(0x1000, 0x1008):
+        assert(ram0[i] == i & 0xff)
+
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
 test__flags()
@@ -1283,6 +1314,7 @@ test_inc()
 test_jp()
 test_jr()
 test_ld()
+test_ldir()
 test_nop()
 test_or()
 test_out_in()

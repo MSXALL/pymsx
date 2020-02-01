@@ -1495,6 +1495,13 @@ class z80:
 
             if bc == 0:
                 break
+
+        self.b = bc >> 8
+        self.c = bc & 0xff
+        self.d = de >> 8
+        self.e = de & 0xff
+        self.h = hl >> 8
+        self.l = hl & 0xff
         
         self.debug('LDIR')
 
