@@ -3,14 +3,10 @@
 import sys
 import threading
 import time
+from pagetype import PageType
+from scc import scc
 from z80 import z80
 from screen_kb import screen_kb
-
-from enum import Enum
-class PageType(Enum):
-    ROM = 1
-    RAM = 2
-    SCC = 3
 
 io = [ 0 ] * 256
 
@@ -19,20 +15,15 @@ rom0 = [ int(b) for b in fh.read(16384) ]
 rom1 = [ int(b) for b in fh.read(16384) ]
 fh.close()
 
+def debug(x):
+    dk.debug('%s <%02x>' % (x, io[0xa8]))
+    print('%s <%02x>' % (x, io[0xa8]), file=sys.stderr)
+
 scc_rom_file = 'md1.rom'
-scc = None
-if scc_rom_file:
-    print('Loading SCC rom %s...' % scc_rom_file, file=sys.stderr)
+scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
+scc_sig = scc_obj.get_signature()
 
-    fh = open(scc_rom_file, 'rb')
-    scc_rom = [ int(b) for b in fh.read() ]
-    fh.close()
-
-    scc_pages = [ 0, 1, 2, 3 ]
-
-    scc = (scc_rom, PageType.SCC, scc_pages)
-
-game_rom_file = None # 'STCMSX1P.ROM' # '../../msx/trunk/docs/magical.rom'
+game_rom_file = None #'MSX-DOS1.rom' # '../../msx/trunk/docs/magical.rom'
 game = None
 if game_rom_file:
     print('Loading SCC rom %s...' % game_rom_file, file=sys.stderr)
@@ -43,26 +34,11 @@ if game_rom_file:
 
     game = (game_rom, PageType.ROM)
 
-def write_scc(s, a, v):
-    bank = (a >> 13) - 2
-    offset = a & 0x1fff
-    p = s[bank] * 0x2000 + offset
+def read_disk(s, a):
+    pass   
 
-    if (offset & 0x1000) == 0x1000: # 0x5000, 0x7000 and so on
-        if v < 255:
-            debug('Set bank %d to %d' % (bank, v))
-            s[bank] = v
-
-    else:
-        self.debug('SCC write to %04x not understood' % a)
-
-def read_scc(s, a):
-    bank = (a >> 13) - 2
-    print('%04x, SCC bank %d, p: %d' % (a, bank, s[bank]), file=sys.stderr)
-    offset = a & 0x1fff
-    p = s[bank] * 0x2000 + offset
-
-    return scc_rom[p]
+def write_disk(s, a, v):
+    pass   
 
 subpage = 0x00
 
@@ -73,8 +49,8 @@ ram3 = [ 0 ] * 16384
 
 slots = [ ] # slots
 slots.append(( (rom0, PageType.ROM), None, None, (ram0, PageType.RAM) ))
-slots.append(( (rom1, PageType.ROM), scc, game, (ram1, PageType.RAM) ))
-slots.append(( None, scc, None, (ram2, PageType.RAM) ))
+slots.append(( (rom1, PageType.ROM), scc_sig, game, (ram1, PageType.RAM) ))
+slots.append(( None, scc_sig, None, (ram2, PageType.RAM) ))
 slots.append(( None, None, None, (ram3, PageType.RAM) ))
 
 pages = [ 0, 0, 0, 0]
@@ -91,7 +67,11 @@ def read_mem(a):
         return 0xee
 
     if slots[page][pages[page]][1] == PageType.SCC:
-        return read_scc(slots[page][pages[page]][2], a)
+        obj = slots[page][pages[page]][2]
+        return obj.read_mem(a)
+
+    if slots[page][pages[page]][1] == PageType.DISK:
+        return read_disk(slots[page][pages[page]][2], a)
 
     return slots[page][pages[page]][0][a & 0x3fff]
 
@@ -115,7 +95,12 @@ def write_mem(a, v):
         return
     
     if slots[page][pages[page]][1] == PageType.SCC:
-        write_scc(slots[page][pages[page]][2], a, v)
+        obj = slots[page][pages[page]][2]
+        obj.write_mem(a, v)
+        return
+    
+    if slots[page][pages[page]][1] == PageType.DISK:
+        write_disk(slots[page][pages[page]][2], a, v)
         return
 
     slots[page][pages[page]][0][a & 0x3fff] = v
@@ -145,10 +130,6 @@ def write_io(a, v):
             pages[i] = (v >> (i * 2)) & 3
 
     io[a] = v
-
-def debug(x):
-    dk.debug('%s <%02x>' % (x, io[0xa8]))
-    print('%s <%02x>' % (x, io[0xa8]), file=sys.stderr)
 
 stop_flag = False
 
