@@ -1170,12 +1170,12 @@ class z80:
             v = self.read_mem_16(a)
             self.h = v >> 8
             self.l = v & 0xff
-            self.debug('LD HL,(%04x)' % a)
+            self.debug('LD HL,(0x%04x)' % a)
 
         elif which == 3:
             a = self.read_pc_inc_16()
             self.a = self.read_mem(a)
-            self.debug('LD A, (%04x)' % a)
+            self.debug('LD A, (0x%04x)' % a)
 
         else:
             assert False
@@ -1231,6 +1231,16 @@ class z80:
             else:
                 self.ui(ui)
 
+        elif major == 0x05:
+            if minor == 0x06:
+                self._ld_d_iy()
+
+            elif minor == 0x0e:
+                self._ld_e_iy()
+
+            else:
+                self.ui(ui)
+
         elif major == 0x0e:
             if minor == 0x01:  # POP IY
                 self._pop_iy()
@@ -1240,6 +1250,13 @@ class z80:
 
             elif minor == 0x09:  # JP (IY)
                 self._jp_ref_iy()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x07:
+            if minor == 0x0e:  # LD A,(IY + *)
+                self._ld_a_iy()
 
             else:
                 self.ui(ui)
@@ -1332,25 +1349,28 @@ class z80:
         elif minor == 5 and major >= 4 and major <= 7:
             self._neg()
 
+        elif instr == 0x71 or instr == 0x61 or instr == 0x51 or instr == 0x41:
+            self._out_c_low(major - 4)
+
         elif instr == 0x53:
             a = self.read_pc_inc_16()
             self.write_mem_16(a, self.m16(self.d, self.h))
-            self.debug('LD (%04x), DE' % a)
+            self.debug('LD (0x%04x), DE' % a)
 
         elif instr == 0x5b:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
             d = v >> 8
             e = v & 255
-            self.debug('LD DE,(%04x)' % a)
+            self.debug('LD DE,(0x%04x)' % a)
 
         elif instr == 0x73:
             a = self.read_pc_inc_16()
             self.write_mem_16(a, self.sp)
-            self.debug('LD (%04x), SP' % a)
+            self.debug('LD (0x%04x), SP' % a)
 
         elif instr == 0x79 or instr == 0x69 or instr == 0x59 or instr == 0x49:
-            self._out_c(major - 4)
+            self._out_c_high(major - 4)
 
         elif instr == 0x7b:
             a = self.read_pc_inc_16()
@@ -1400,11 +1420,11 @@ class z80:
             a = self.read_pc_inc_16()
             self.write_mem(a, self.l)
             self.write_mem((a + 1) & 0xffff, self.h)
-            self.debug('LD (%04x),HL' % a)
+            self.debug('LD (0x%04x),HL' % a)
         elif which == 3:  # LD (**), A
             a = self.read_pc_inc_16()
             self.write_mem(a, self.a)
-            self.debug('LD (%04x),A' % a)
+            self.debug('LD (0x%04x),A' % a)
         else:
             assert False
 
@@ -1747,7 +1767,27 @@ class z80:
 
         self.debug('INC IX')
 
-    def _out_c(self, which):
+    def _out_c_low(self, which):
+        if which == 0:
+            v = self.b
+            name = 'B'
+        elif which == 1:
+            v = self.d
+            name = 'D'
+        elif which == 2:
+            v = self.h
+            name = 'H'
+        elif which == 3:
+            v = 0
+            name = '0'
+        else:
+            self.ui(-1)
+
+        self.out(self.c, v)
+
+        self.debug('OUT (C), %s' % name)
+
+    def _out_c_high(self, which):
         if which == 0:
             v = self.c
             name = 'C'
@@ -1771,3 +1811,30 @@ class z80:
         self.pc = self.read_mem_16(self.iy)
 
         self.debug('JP (IY)')
+
+    def _ld_a_iy(self):
+        offset = self.read_pc_inc()
+
+        a = (self.iy + offset) & 0xffff
+
+        self.a = self.read_mem(a)
+
+        self.debug('LD A,(IY + *)')
+
+    def _ld_d_iy(self):
+        offset = self.read_pc_inc()
+
+        a = (self.iy + offset) & 0xffff
+
+        self.d = self.read_mem(a)
+
+        self.debug('LD D,(IY + *)')
+
+    def _ld_e_iy(self):
+        offset = self.read_pc_inc()
+
+        a = (self.iy + offset) & 0xffff
+
+        self.e = self.read_mem(a)
+
+        self.debug('LD E,(IY + *)')

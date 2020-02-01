@@ -32,7 +32,7 @@ if scc_rom_file:
 
     scc = (scc_rom, PageType.SCC, scc_pages)
 
-game_rom_file = None # '../../msx/trunk/docs/magical.rom'
+game_rom_file = 'STCMSX1P.ROM' # '../../msx/trunk/docs/magical.rom'
 game = None
 if game_rom_file:
     print('Loading SCC rom %s...' % game_rom_file, file=sys.stderr)
@@ -49,13 +49,16 @@ def write_scc(s, a, v):
     p = s[bank] * 0x2000 + offset
 
     if (offset & 0x1000) == 0x1000: # 0x5000, 0x7000 and so on
-        s[bank] = v
+        if v < 255:
+            debug('Set bank %d to %d' % (bank, v))
+            s[bank] = v
 
     else:
         self.debug('SCC write to %04x not understood' % a)
 
 def read_scc(s, a):
     bank = (a >> 13) - 2
+    print('%04x, SCC bank %d, p: %d' % (a, bank, s[bank]), file=sys.stderr)
     offset = a & 0x1fff
     p = s[bank] * 0x2000 + offset
 
@@ -71,7 +74,7 @@ ram3 = [ 0 ] * 16384
 slots = [ ] # slots
 slots.append(( (rom0, PageType.ROM), None, None, (ram0, PageType.RAM) ))
 slots.append(( (rom1, PageType.ROM), scc, game, (ram1, PageType.RAM) ))
-slots.append(( None, None, None, (ram2, PageType.RAM) ))
+slots.append(( None, scc, None, (ram2, PageType.RAM) ))
 slots.append(( None, None, None, (ram3, PageType.RAM) ))
 
 pages = [ 0, 0, 0, 0]
