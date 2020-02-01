@@ -1247,7 +1247,31 @@ class z80:
         minor1 = instr & 8
         minor2 = instr & 7
 
-        if major == 0x0e:
+        if major == 0x02:
+            if minor == 0x01:  # LD IX,**
+                self._ld_ix()
+
+            elif minor == 0x03:  # INC IX
+                self._inc_ix()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x07:
+            if minor == 0x0e:
+                self._ld_ix_im()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x0c:
+            if minor == 0x0b:  # IX instructions
+                self.ix_bit()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x0e:
             if minor == 0x01:  # POP IX
                 self._pop_ix()
 
@@ -1259,6 +1283,22 @@ class z80:
 
             else:
                 self.ui(ui)
+
+        else:
+            self.ui(ui)
+
+    def ix_bit(self):
+        instr = self.read_pc_inc()
+
+        ui = (0xddcb << 8) | instr
+
+        major = instr >> 4
+        minor = instr & 15
+        minor1 = instr & 8
+        minor2 = instr & 7
+
+        if major == 0x00:
+            self.ui(ui)
 
         else:
             self.ui(ui)
@@ -1660,3 +1700,24 @@ class z80:
         self.set_flag_z(result == 0)
 
         self.debug('CPDR')
+
+    def _ld_ix(self):
+        v = self.read_pc_inc_16()
+        self.ix = v
+
+        self.debug('LD ix,**')
+
+    def _ld_ix_im(self):
+        offset = self.read_pc_inc()
+
+        a = (self.ix + offset) & 0xffff
+
+        self.a = self.read_mem(a)
+
+        self.debug('LD A,(IX + *)')
+
+    def _inc_ix(self):
+        self.ix = (self.ix + 1) & 0xffff
+
+        self.debug('INC IX')
+

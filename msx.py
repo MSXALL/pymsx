@@ -32,7 +32,7 @@ if scc_rom_file:
 
     scc = (scc_rom, PageType.SCC, scc_pages)
 
-game_rom_file = None  # '/home/folkert/Projects/msx/trunk/docs/testram.rom'
+game_rom_file = None #'/home/folkert/Projects/msx/trunk/docs/testram.rom'
 game = None
 if game_rom_file:
     print('Loading SCC rom %s...' % game_rom_file, file=sys.stderr)
@@ -242,10 +242,10 @@ def get_keyboard():
 
         else:
             lrc = find_char_row(kb_last_c)
-            print('keyb', lrc, file=sys.stderr)
 
             if lrc:
                 kb_row_nr, kb_row, kb_shift = lrc
+                print('keyb', lrc, file=sys.stderr)
 
             else:
                 kb_last_c = None
@@ -269,7 +269,8 @@ def get_keyboard():
         kb_row = None
         kb_shift = False
 
-    print('rc', rc, file=sys.stderr)
+    if rc != 255:
+        print('rc', rc, file=sys.stderr)
 
     return rc
 
