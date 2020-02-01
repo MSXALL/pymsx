@@ -117,177 +117,14 @@ def write_mem(a, v):
 
     slots[page][pages[page]][0][a & 0x3fff] = v
 
-def find_char_row(c):
-    chars = [ None ] * 256
-    chars[ord(')')] = ( 0, (1 << 0) ^ 0xff, True )
-    chars[ord('0')] = ( 0, (1 << 0) ^ 0xff, False )
-    chars[ord('!')] = ( 0, (1 << 1) ^ 0xff, True )
-    chars[ord('1')] = ( 0, (1 << 1) ^ 0xff, False )
-    chars[ord('@')] = ( 0, (1 << 2) ^ 0xff, True )
-    chars[ord('2')] = ( 0, (1 << 2) ^ 0xff, False )
-    chars[ord('#')] = ( 0, (1 << 3) ^ 0xff, True )
-    chars[ord('3')] = ( 0, (1 << 3) ^ 0xff, False )
-    chars[ord('$')] = ( 0, (1 << 4) ^ 0xff, True )
-    chars[ord('4')] = ( 0, (1 << 4) ^ 0xff, False )
-    chars[ord('%')] = ( 0, (1 << 5) ^ 0xff, True )
-    chars[ord('5')] = ( 0, (1 << 5) ^ 0xff, False )
-    chars[ord('^')] = ( 0, (1 << 6) ^ 0xff, True )
-    chars[ord('6')] = ( 0, (1 << 6) ^ 0xff, False )
-    chars[ord('&')] = ( 0, (1 << 7) ^ 0xff, True )
-    chars[ord('7')] = ( 0, (1 << 7) ^ 0xff, False )
-    chars[ord('*')] = ( 1, (1 << 0) ^ 0xff, True )
-    chars[ord('8')] = ( 1, (1 << 0) ^ 0xff, False )
-    chars[ord('(')] = ( 1, (1 << 1) ^ 0xff, True )
-    chars[ord('9')] = ( 1, (1 << 1) ^ 0xff, False )
-    chars[ord('_')] = ( 1, (1 << 2) ^ 0xff, True )
-    chars[ord('-')] = ( 1, (1 << 2) ^ 0xff, False )
-    chars[ord('+')] = ( 1, (1 << 3) ^ 0xff, True )
-    chars[ord('=')] = ( 1, (1 << 3) ^ 0xff, False )
-    chars[ord('|')] = ( 1, (1 << 4) ^ 0xff, True )
-    chars[ord('\\')] = ( 1, (1 << 4) ^ 0xff, False )
-    chars[ord('{')] = ( 1, (1 << 5) ^ 0xff, True )
-    chars[ord('[')] = ( 1, (1 << 5) ^ 0xff, False )
-    chars[ord('}')] = ( 1, (1 << 6) ^ 0xff, True )
-    chars[ord(']')] = ( 1, (1 << 6) ^ 0xff, False )
-    chars[ord(':')] = ( 1, (1 << 7) ^ 0xff, True )
-    chars[ord(';')] = ( 1, (1 << 7) ^ 0xff, False )
-    chars[ord('"')] = ( 2, (1 << 0) ^ 0xff, True )
-    chars[ord("'")] = ( 2, (1 << 0) ^ 0xff, False )
-    chars[ord('~')] = ( 2, (1 << 1) ^ 0xff, True )
-    chars[ord('`')] = ( 2, (1 << 1) ^ 0xff, False )
-    chars[ord('<')] = ( 2, (1 << 2) ^ 0xff, True )
-    chars[ord(',')] = ( 2, (1 << 2) ^ 0xff, False )
-    chars[ord('>')] = ( 2, (1 << 3) ^ 0xff, True )
-    chars[ord('.')] = ( 2, (1 << 3) ^ 0xff, False )
-    chars[ord('?')] = ( 2, (1 << 4) ^ 0xff, True )
-    chars[ord('/')] = ( 2, (1 << 4) ^ 0xff, False )
-    chars[ord('A')] = ( 2, (1 << 6) ^ 0xff, True )
-    chars[ord('a')] = ( 2, (1 << 6) ^ 0xff, False )
-    chars[ord('B')] = ( 2, (1 << 7) ^ 0xff, True )
-    chars[ord('b')] = ( 2, (1 << 7) ^ 0xff, False )
-    chars[ord('C')] = ( 3, (1 << 0) ^ 0xff, True )
-    chars[ord('c')] = ( 3, (1 << 0) ^ 0xff, False )
-    chars[ord('D')] = ( 3, (1 << 1) ^ 0xff, True )
-    chars[ord('d')] = ( 3, (1 << 1) ^ 0xff, False )
-    chars[ord('E')] = ( 3, (1 << 2) ^ 0xff, True )
-    chars[ord('e')] = ( 3, (1 << 2) ^ 0xff, False )
-    chars[ord('F')] = ( 3, (1 << 3) ^ 0xff, True )
-    chars[ord('f')] = ( 3, (1 << 3) ^ 0xff, False )
-    chars[ord('G')] = ( 3, (1 << 4) ^ 0xff, True )
-    chars[ord('g')] = ( 3, (1 << 4) ^ 0xff, False )
-    chars[ord('H')] = ( 3, (1 << 5) ^ 0xff, True )
-    chars[ord('h')] = ( 3, (1 << 5) ^ 0xff, False )
-    chars[ord('I')] = ( 3, (1 << 6) ^ 0xff, True )
-    chars[ord('i')] = ( 3, (1 << 6) ^ 0xff, False )
-    chars[ord('J')] = ( 3, (1 << 7) ^ 0xff, True )
-    chars[ord('j')] = ( 3, (1 << 7) ^ 0xff, False )
-    chars[ord('K')] = ( 4, (1 << 0) ^ 0xff, True )
-    chars[ord('k')] = ( 4, (1 << 0) ^ 0xff, False )
-    chars[ord('L')] = ( 4, (1 << 1) ^ 0xff, True )
-    chars[ord('l')] = ( 4, (1 << 1) ^ 0xff, False )
-    chars[ord('M')] = ( 4, (1 << 2) ^ 0xff, True )
-    chars[ord('m')] = ( 4, (1 << 2) ^ 0xff, False )
-    chars[ord('N')] = ( 4, (1 << 3) ^ 0xff, True )
-    chars[ord('n')] = ( 4, (1 << 3) ^ 0xff, False )
-    chars[ord('O')] = ( 4, (1 << 4) ^ 0xff, True )
-    chars[ord('o')] = ( 4, (1 << 4) ^ 0xff, False )
-    chars[ord('P')] = ( 4, (1 << 5) ^ 0xff, True )
-    chars[ord('p')] = ( 4, (1 << 5) ^ 0xff, False )
-    chars[ord('Q')] = ( 4, (1 << 6) ^ 0xff, True )
-    chars[ord('q')] = ( 4, (1 << 6) ^ 0xff, False )
-    chars[ord('R')] = ( 4, (1 << 7) ^ 0xff, True )
-    chars[ord('r')] = ( 4, (1 << 7) ^ 0xff, False )
-    chars[ord('S')] = ( 5, (1 << 0) ^ 0xff, True )
-    chars[ord('s')] = ( 5, (1 << 0) ^ 0xff, False )
-    chars[ord('T')] = ( 5, (1 << 1) ^ 0xff, True )
-    chars[ord('t')] = ( 5, (1 << 1) ^ 0xff, False )
-    chars[ord('U')] = ( 5, (1 << 2) ^ 0xff, True )
-    chars[ord('u')] = ( 5, (1 << 2) ^ 0xff, False )
-    chars[ord('V')] = ( 5, (1 << 3) ^ 0xff, True )
-    chars[ord('v')] = ( 5, (1 << 3) ^ 0xff, False )
-    chars[ord('W')] = ( 5, (1 << 4) ^ 0xff, True )
-    chars[ord('w')] = ( 5, (1 << 4) ^ 0xff, False )
-    chars[ord('X')] = ( 5, (1 << 5) ^ 0xff, True )
-    chars[ord('x')] = ( 5, (1 << 5) ^ 0xff, False )
-    chars[ord('Y')] = ( 5, (1 << 6) ^ 0xff, True )
-    chars[ord('y')] = ( 5, (1 << 6) ^ 0xff, False )
-    chars[ord('Z')] = ( 5, (1 << 7) ^ 0xff, True )
-    chars[ord('z')] = ( 5, (1 << 7) ^ 0xff, False )
-    chars[8       ] = ( 7, (1 << 5) ^ 0xff, False )
-    chars[127     ] = ( 7, (1 << 5) ^ 0xff, False )
-    chars[10      ] = ( 7, (1 << 7) ^ 0xff, False )
-    chars[13      ] = ( 7, (1 << 7) ^ 0xff, False )
-    chars[ord(' ')] = ( 8, (1 << 0) ^ 0xff, False )
-
-    return chars[c]
-
-kb_last_c = None
-kb_char_scanned = kb_shift_scanned = False
-kb_row_nr = None
-kb_row = None
-kb_shift = False
-def get_keyboard():
-    global kb_last_c
-    global kb_char_scanned
-    global kb_shift_scanned
-    global kb_row_nr
-    global kb_row
-    global kb_shift
-
-    rc = 255
-
-    if kb_last_c == None:
-        kb_last_c = dk.getch(False)
-
-        if kb_last_c == -1:
-            kb_last_c = None
-
-        else:
-            lrc = find_char_row(kb_last_c)
-
-            if lrc:
-                kb_row_nr, kb_row, kb_shift = lrc
-                print('lastc %c %s' % (kb_last_c, "{0:b}".format(kb_row)), file=sys.stderr)
-                print('keyb', lrc, file=sys.stderr)
-
-            else:
-                kb_last_c = None
-
-            kb_shift_scanned = False
-            kb_char_scanned = False
-
-    if (io[0xaa] & 15) == kb_row_nr:
-        kb_char_scanned = True
-        rc = kb_row
-
-    if (io[0xaa] & 15) == 6:
-        kb_shift_scanned = True
-
-        if kb_shift:
-            rc &= ~1
-
-    if kb_shift_scanned and kb_char_scanned:
-        kb_last_c = None
-        kb_row_nr = None
-        kb_row = None
-        kb_shift = False
-
-    if rc != 255:
-        print('rc', rc, file=sys.stderr)
-
-    return rc
-
 def read_io(a):
     debug('Get I/O register %02x' % a)
 
-    if a >= 0x98 and a <= 0x9b:
+    if (a >= 0x98 and a <= 0x9b) or a == 0xa9:
         return dk.read_io(a)
 
     if a == 0xa8:
         return (pages[3] << 6) | (pages[2] << 4) | (pages[1] << 2) | pages[0]
-
-    if a == 0xa9:
-        return get_keyboard()
 
     return io[a]
  
@@ -320,7 +157,7 @@ def cpu_thread():
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
-dk = screen_kb(cpu)
+dk = screen_kb(cpu, io)
 dk.start()
 
 t = threading.Thread(target=cpu_thread)

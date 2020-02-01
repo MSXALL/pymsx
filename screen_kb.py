@@ -5,7 +5,7 @@ import threading
 import time
 
 class screen_kb(threading.Thread):
-    def __init__(self, cpu):
+    def __init__(self, cpu, io):
         self.ram = [ 0 ] * 16384
         self.vdp_rw_pointer = 0
         self.vdp_addr_state = False
@@ -16,6 +16,13 @@ class screen_kb(threading.Thread):
         self.stop_flag = False
         self.cpu = cpu
         self.vdp_read_ahead = 0
+
+        self.io = io
+        self.kb_last_c = None
+        self.kb_char_scanned = self.kb_shift_scanned = False
+        self.kb_row_nr = None
+        self.kb_row = None
+        self.kb_shift = False
 
         stdscr = curses.initscr()
         curses.start_color()
@@ -221,5 +228,156 @@ class screen_kb(threading.Thread):
         if a == 0x99:
             rc = self.registers[2]
             self.registers[2] &= 127
+
+        if a == 0xa9:
+            return self.get_keyboard()
+
+        return rc
+
+    def find_char_row(self, c):
+        chars = [ None ] * 256
+        chars[ord(')')] = ( 0, (1 << 0) ^ 0xff, True )
+        chars[ord('0')] = ( 0, (1 << 0) ^ 0xff, False )
+        chars[ord('!')] = ( 0, (1 << 1) ^ 0xff, True )
+        chars[ord('1')] = ( 0, (1 << 1) ^ 0xff, False )
+        chars[ord('@')] = ( 0, (1 << 2) ^ 0xff, True )
+        chars[ord('2')] = ( 0, (1 << 2) ^ 0xff, False )
+        chars[ord('#')] = ( 0, (1 << 3) ^ 0xff, True )
+        chars[ord('3')] = ( 0, (1 << 3) ^ 0xff, False )
+        chars[ord('$')] = ( 0, (1 << 4) ^ 0xff, True )
+        chars[ord('4')] = ( 0, (1 << 4) ^ 0xff, False )
+        chars[ord('%')] = ( 0, (1 << 5) ^ 0xff, True )
+        chars[ord('5')] = ( 0, (1 << 5) ^ 0xff, False )
+        chars[ord('^')] = ( 0, (1 << 6) ^ 0xff, True )
+        chars[ord('6')] = ( 0, (1 << 6) ^ 0xff, False )
+        chars[ord('&')] = ( 0, (1 << 7) ^ 0xff, True )
+        chars[ord('7')] = ( 0, (1 << 7) ^ 0xff, False )
+        chars[ord('*')] = ( 1, (1 << 0) ^ 0xff, True )
+        chars[ord('8')] = ( 1, (1 << 0) ^ 0xff, False )
+        chars[ord('(')] = ( 1, (1 << 1) ^ 0xff, True )
+        chars[ord('9')] = ( 1, (1 << 1) ^ 0xff, False )
+        chars[ord('_')] = ( 1, (1 << 2) ^ 0xff, True )
+        chars[ord('-')] = ( 1, (1 << 2) ^ 0xff, False )
+        chars[ord('+')] = ( 1, (1 << 3) ^ 0xff, True )
+        chars[ord('=')] = ( 1, (1 << 3) ^ 0xff, False )
+        chars[ord('|')] = ( 1, (1 << 4) ^ 0xff, True )
+        chars[ord('\\')] = ( 1, (1 << 4) ^ 0xff, False )
+        chars[ord('{')] = ( 1, (1 << 5) ^ 0xff, True )
+        chars[ord('[')] = ( 1, (1 << 5) ^ 0xff, False )
+        chars[ord('}')] = ( 1, (1 << 6) ^ 0xff, True )
+        chars[ord(']')] = ( 1, (1 << 6) ^ 0xff, False )
+        chars[ord(':')] = ( 1, (1 << 7) ^ 0xff, True )
+        chars[ord(';')] = ( 1, (1 << 7) ^ 0xff, False )
+        chars[ord('"')] = ( 2, (1 << 0) ^ 0xff, True )
+        chars[ord("'")] = ( 2, (1 << 0) ^ 0xff, False )
+        chars[ord('~')] = ( 2, (1 << 1) ^ 0xff, True )
+        chars[ord('`')] = ( 2, (1 << 1) ^ 0xff, False )
+        chars[ord('<')] = ( 2, (1 << 2) ^ 0xff, True )
+        chars[ord(',')] = ( 2, (1 << 2) ^ 0xff, False )
+        chars[ord('>')] = ( 2, (1 << 3) ^ 0xff, True )
+        chars[ord('.')] = ( 2, (1 << 3) ^ 0xff, False )
+        chars[ord('?')] = ( 2, (1 << 4) ^ 0xff, True )
+        chars[ord('/')] = ( 2, (1 << 4) ^ 0xff, False )
+        chars[ord('A')] = ( 2, (1 << 6) ^ 0xff, True )
+        chars[ord('a')] = ( 2, (1 << 6) ^ 0xff, False )
+        chars[ord('B')] = ( 2, (1 << 7) ^ 0xff, True )
+        chars[ord('b')] = ( 2, (1 << 7) ^ 0xff, False )
+        chars[ord('C')] = ( 3, (1 << 0) ^ 0xff, True )
+        chars[ord('c')] = ( 3, (1 << 0) ^ 0xff, False )
+        chars[ord('D')] = ( 3, (1 << 1) ^ 0xff, True )
+        chars[ord('d')] = ( 3, (1 << 1) ^ 0xff, False )
+        chars[ord('E')] = ( 3, (1 << 2) ^ 0xff, True )
+        chars[ord('e')] = ( 3, (1 << 2) ^ 0xff, False )
+        chars[ord('F')] = ( 3, (1 << 3) ^ 0xff, True )
+        chars[ord('f')] = ( 3, (1 << 3) ^ 0xff, False )
+        chars[ord('G')] = ( 3, (1 << 4) ^ 0xff, True )
+        chars[ord('g')] = ( 3, (1 << 4) ^ 0xff, False )
+        chars[ord('H')] = ( 3, (1 << 5) ^ 0xff, True )
+        chars[ord('h')] = ( 3, (1 << 5) ^ 0xff, False )
+        chars[ord('I')] = ( 3, (1 << 6) ^ 0xff, True )
+        chars[ord('i')] = ( 3, (1 << 6) ^ 0xff, False )
+        chars[ord('J')] = ( 3, (1 << 7) ^ 0xff, True )
+        chars[ord('j')] = ( 3, (1 << 7) ^ 0xff, False )
+        chars[ord('K')] = ( 4, (1 << 0) ^ 0xff, True )
+        chars[ord('k')] = ( 4, (1 << 0) ^ 0xff, False )
+        chars[ord('L')] = ( 4, (1 << 1) ^ 0xff, True )
+        chars[ord('l')] = ( 4, (1 << 1) ^ 0xff, False )
+        chars[ord('M')] = ( 4, (1 << 2) ^ 0xff, True )
+        chars[ord('m')] = ( 4, (1 << 2) ^ 0xff, False )
+        chars[ord('N')] = ( 4, (1 << 3) ^ 0xff, True )
+        chars[ord('n')] = ( 4, (1 << 3) ^ 0xff, False )
+        chars[ord('O')] = ( 4, (1 << 4) ^ 0xff, True )
+        chars[ord('o')] = ( 4, (1 << 4) ^ 0xff, False )
+        chars[ord('P')] = ( 4, (1 << 5) ^ 0xff, True )
+        chars[ord('p')] = ( 4, (1 << 5) ^ 0xff, False )
+        chars[ord('Q')] = ( 4, (1 << 6) ^ 0xff, True )
+        chars[ord('q')] = ( 4, (1 << 6) ^ 0xff, False )
+        chars[ord('R')] = ( 4, (1 << 7) ^ 0xff, True )
+        chars[ord('r')] = ( 4, (1 << 7) ^ 0xff, False )
+        chars[ord('S')] = ( 5, (1 << 0) ^ 0xff, True )
+        chars[ord('s')] = ( 5, (1 << 0) ^ 0xff, False )
+        chars[ord('T')] = ( 5, (1 << 1) ^ 0xff, True )
+        chars[ord('t')] = ( 5, (1 << 1) ^ 0xff, False )
+        chars[ord('U')] = ( 5, (1 << 2) ^ 0xff, True )
+        chars[ord('u')] = ( 5, (1 << 2) ^ 0xff, False )
+        chars[ord('V')] = ( 5, (1 << 3) ^ 0xff, True )
+        chars[ord('v')] = ( 5, (1 << 3) ^ 0xff, False )
+        chars[ord('W')] = ( 5, (1 << 4) ^ 0xff, True )
+        chars[ord('w')] = ( 5, (1 << 4) ^ 0xff, False )
+        chars[ord('X')] = ( 5, (1 << 5) ^ 0xff, True )
+        chars[ord('x')] = ( 5, (1 << 5) ^ 0xff, False )
+        chars[ord('Y')] = ( 5, (1 << 6) ^ 0xff, True )
+        chars[ord('y')] = ( 5, (1 << 6) ^ 0xff, False )
+        chars[ord('Z')] = ( 5, (1 << 7) ^ 0xff, True )
+        chars[ord('z')] = ( 5, (1 << 7) ^ 0xff, False )
+        chars[8       ] = ( 7, (1 << 5) ^ 0xff, False )
+        chars[127     ] = ( 7, (1 << 5) ^ 0xff, False )
+        chars[10      ] = ( 7, (1 << 7) ^ 0xff, False )
+        chars[13      ] = ( 7, (1 << 7) ^ 0xff, False )
+        chars[ord(' ')] = ( 8, (1 << 0) ^ 0xff, False )
+
+        return chars[c]
+
+    def get_keyboard(self):
+        rc = 255
+
+        if self.kb_last_c == None:
+            self.kb_last_c = self.getch(False)
+
+            if self.kb_last_c == -1:
+                self.kb_last_c = None
+
+            else:
+                lrc = self.find_char_row(self.kb_last_c)
+
+                if lrc:
+                    self.kb_row_nr, self.kb_row, self.kb_shift = lrc
+                    print('lastc %c %s' % (self.kb_last_c, "{0:b}".format(self.kb_row)), file=sys.stderr)
+                    print('keyb', lrc, file=sys.stderr)
+
+                else:
+                    self.kb_last_c = None
+
+                self.kb_shift_scanned = False
+                self.kb_char_scanned = False
+
+        if (self.io[0xaa] & 15) == self.kb_row_nr:
+            self.kb_char_scanned = True
+            rc = self.kb_row
+
+        if (self.io[0xaa] & 15) == 6:
+            self.kb_shift_scanned = True
+
+            if self.kb_shift:
+                rc &= ~1
+
+        if self.kb_shift_scanned and self.kb_char_scanned:
+            self.kb_last_c = None
+            self.kb_row_nr = None
+            self.kb_row = None
+            self.kb_shift = False
+
+        if rc != 255:
+            print('rc', rc, file=sys.stderr)
 
         return rc
