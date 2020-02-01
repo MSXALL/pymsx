@@ -32,7 +32,7 @@ if scc_rom_file:
 
     scc = (scc_rom, PageType.SCC, scc_pages)
 
-game_rom_file = 'STCMSX1P.ROM' # '../../msx/trunk/docs/magical.rom'
+game_rom_file = None # 'STCMSX1P.ROM' # '../../msx/trunk/docs/magical.rom'
 game = None
 if game_rom_file:
     print('Loading SCC rom %s...' % game_rom_file, file=sys.stderr)

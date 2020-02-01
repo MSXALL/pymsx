@@ -1343,11 +1343,17 @@ class z80:
         if instr == 0xb0:
             self._ldir()
 
+        elif minor == 0 and major >= 4 and major <= 6:
+            self._in_ed_low(major - 4)
+
         elif minor == 2 and major >= 4 and major <= 7:
             self._sbc16(major - 4)
 
         elif minor == 5 and major >= 4 and major <= 7:
             self._neg()
+
+        elif minor == 8 and major >= 4 and major <= 7:
+            self._in_ed_high(major - 4)
 
         elif instr == 0x71 or instr == 0x61 or instr == 0x51 or instr == 0x41:
             self._out_c_low(major - 4)
@@ -1376,6 +1382,9 @@ class z80:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
             self.sp = v
+
+        elif instr == 0xa3:
+            self._outi()
 
         elif instr == 0xb9:
             self._cpdr()
@@ -1808,7 +1817,7 @@ class z80:
         self.debug('OUT (C), %s' % name)
 
     def _jp_ref_iy(self):
-        self.pc = self.read_mem_16(self.iy)
+        self.pc = self.iy
 
         self.debug('JP (IY)')
 
@@ -1838,3 +1847,55 @@ class z80:
         self.e = self.read_mem(a)
 
         self.debug('LD E,(IY + *)')
+
+    def _in_ed_low(self, which):
+        v = self.in_(self.c)
+
+        if which == 0:
+            self.b = v
+            name = 'B'
+        elif which == 1:
+            self.d = v
+            name = 'D'
+        elif which == 2:
+            self.h = v
+            name = 'H'
+        else:
+            self.ui(-1)
+
+        self.debug('IN %s,(C)' % name)
+
+    def _in_ed_high(self, which):
+        v = self.in_(self.c)
+
+        if which == 0:
+            self.c = v
+            name = 'C'
+        elif which == 1:
+            self.e = v
+            name = 'E'
+        elif which == 2:
+            self.l = v
+            name = 'L'
+        elif which == 3:
+            self.a = v
+            name = 'A'
+        else:
+            self.ui(-1)
+
+        self.debug('IN %s,(C)' % name)
+
+    def _outi(self):
+        a = self.m16(self.h, self.l)
+        self.out(self.c, self.read_mem(a))
+
+        a += 1
+        a &= 0xffff
+
+        self.h = a >> 8
+        self.l = a & 0xff
+
+        self.b -= 1
+        self.b &= 0xff
+
+        self.debug('OUTI')
