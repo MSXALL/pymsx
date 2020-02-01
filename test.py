@@ -151,6 +151,18 @@ def test_ld():
     my_assert(cpu.f == 0)
     my_assert(cpu.pc == 3)
 
+    # LD SP,HL
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x10
+    cpu.l = 0x21
+    cpu.sp = 0x1234
+    cpu.f = 0
+    ram0[0] = 0xf9
+    cpu.step()
+    my_assert(cpu.f == 0)
+    my_assert(cpu.sp == 0x1021)
+
 def test_jp():
     # JP **
     reset_mem()
@@ -563,6 +575,18 @@ def test_add():
     my_assert(cpu.f == (0x01 & 0xd7))
     my_assert(cpu.pc == 1)
 
+    # ADD *
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xf0
+    cpu.f = 0
+    ram0[0] = 0xc6
+    ram0[1] = 0x21
+    cpu.step()
+    my_assert(cpu.a == 0x11)
+    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.pc == 2)
+
     # ADC B
     reset_mem()
     cpu.reset()
@@ -734,7 +758,7 @@ def test_push_pop():
     my_assert(cpu.d == 0x12)
     my_assert(cpu.e == 0x34)
 
-    # PUSH IY
+    # PUSH IX
     reset_mem()
     cpu.reset()
     cpu.sp = 0x3fff
@@ -754,6 +778,27 @@ def test_push_pop():
     my_assert(cpu.pc == 4)
     my_assert(cpu.sp == 0x3fff)
     my_assert(cpu.iy == 0x4321)
+
+    # PUSH IY
+    reset_mem()
+    cpu.reset()
+    cpu.sp = 0x3fff
+    cpu.f = 0
+    cpu.iy = 0x4321
+    ram0[0] = 0xfd
+    ram0[1] = 0xe5
+    ram0[2] = 0xdd
+    ram0[3] = 0xe1
+    cpu.step()
+    my_assert(cpu.f == 0x00)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.sp == 0x3ffd)
+    my_assert(cpu.read_mem_16(0x3ffd) == 0x4321)
+    cpu.step()
+    my_assert(cpu.f == 0x00)
+    my_assert(cpu.pc == 4)
+    my_assert(cpu.sp == 0x3fff)
+    my_assert(cpu.ix == 0x4321)
 
 def test_jr():
     # JR -2
