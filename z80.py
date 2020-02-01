@@ -548,7 +548,7 @@ class z80:
         self.f |= (v << 0)
 
     def get_flag_c(self):
-        return self.f & (1 << 0)
+        return (self.f & (1 << 0)) != 0
 
     def set_flag_n(self, v):
         assert v == False or v == True
@@ -556,7 +556,7 @@ class z80:
         self.f |= v << 1
 
     def get_flag_n(self):
-        return self.f & (1 << 1)
+        return (self.f & (1 << 1)) != 0
 
     def set_flag_pv(self, v):
         assert v == False or v == True
@@ -567,7 +567,7 @@ class z80:
         self.set_flag_pv(self.parity(self.a))
 
     def get_flag_pv(self):
-        return self.f & (1 << 2)
+        return (self.f & (1 << 2)) != 0
 
     def set_flag_h(self, v):
         assert v == False or v == True
@@ -575,7 +575,7 @@ class z80:
         self.f |= v << 4
 
     def get_flag_h(self):
-        return self.f & (1 << 4)
+        return (self.f & (1 << 4)) != 0
 
     def set_flag_z(self, v):
         assert v == False or v == True
@@ -583,7 +583,7 @@ class z80:
         self.f |= v << 6
 
     def get_flag_z(self):
-        return self.f & (1 << 6)
+        return (self.f & (1 << 6)) != 0
 
     def set_flag_s(self, v):
         assert v == False or v == True
@@ -591,7 +591,7 @@ class z80:
         self.f |= v << 7
 
     def get_flag_s(self):
-        return self.f & (1 << 7)
+        return (self.f & (1 << 7)) != 0
 
     def ret_flag(self, flag):
         if flag:

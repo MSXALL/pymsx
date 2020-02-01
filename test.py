@@ -1165,13 +1165,56 @@ def test_rst():
     my_assert(cpu.sp == 0x3ffd)
     my_assert(cpu.read_mem_16(0x3ffd) == 0x001)
 
+def test_ccf():
+    # CCF
+    reset_mem()
+    cpu.reset()
+    cpu.f = 0xff
+    ram0[0] = 0x3f
+    cpu.step()
+    my_assert(cpu.pc == 1)
+    my_assert(cpu.f == 0xec)
+
+def test_bit():
+    # BIT 4,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0xff
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x61
+    cpu.step()
+    my_assert(cpu.c == 0xff)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+    my_assert(cpu.get_flag_h() == True)
+    my_assert(cpu.get_flag_z() == True)
+
+    # BIT 4,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0x00
+    cpu.f = 1
+    ram0[0] = 0xcb
+    ram0[1] = 0x61
+    cpu.step()
+    my_assert(cpu.c == 0)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == True)
+    my_assert(cpu.get_flag_n() == False)
+    my_assert(cpu.get_flag_h() == True)
+    my_assert(cpu.get_flag_z() == False)
+
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
 test__flags()
 test__support()
 test_add()
 test_and()
+test_bit()
 test_call_ret()
+test_ccf()
 test_cp()
 test_cpl()
 test_dec()
