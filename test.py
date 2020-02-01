@@ -121,6 +121,36 @@ def test_ld():
     my_assert(cpu.l == 0xff)
     my_assert(cpu.pc == 3)
 
+    # LD A,(BC)
+    reset_mem()
+    cpu.reset()
+    cpu.a = 123
+    cpu.b = 0x10
+    cpu.c = 0x00
+    cpu.write_mem(0x1000, 0x99)
+    cpu.f = 0
+    ram0[0] = 0x0a
+    cpu.step()
+    my_assert(cpu.a == 0x99)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 1)
+
+    # LD HL,(**)
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x77
+    cpu.l = 0x77
+    cpu.write_mem_16(0x1000, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0x2a
+    ram0[1] = 0x00
+    ram0[2] = 0x10
+    cpu.step()
+    my_assert(cpu.h == 0x99)
+    my_assert(cpu.l == 0x88)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 3)
+
 def test_jp():
     # JP **
     reset_mem()
