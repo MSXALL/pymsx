@@ -227,6 +227,38 @@ def test_ld():
     my_assert(cpu.d == 0x99)
     my_assert(cpu.e == 0x88)
 
+    # LD H,(IX+*)
+    reset_mem()
+    cpu.reset()
+    cpu.d = 0x77
+    cpu.e = 0x22
+    cpu.ix = 0x1000
+    cpu.write_mem_16(0x1003, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0xdd
+    ram0[1] = 0x66
+    ram0[2] = 3
+    cpu.step()
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.h == 0x88)
+
+    # LD H,(IY+*)
+    reset_mem()
+    cpu.reset()
+    cpu.d = 0x77
+    cpu.e = 0x22
+    cpu.iy = 0x1000
+    cpu.write_mem_16(0x1003, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0xfd
+    ram0[1] = 0x66
+    ram0[2] = 3
+    cpu.step()
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.h == 0x88)
+
 def test_jp():
     # JP **
     reset_mem()
@@ -735,6 +767,21 @@ def test_add():
     my_assert(cpu.l == 0x78)
     my_assert(cpu.f == (0x00 & 0xd7))
     my_assert(cpu.pc == 1)
+
+    # ADD A,(IX+*)
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x01
+    cpu.ix = 0x1000
+    cpu.write_mem_16(0x1003, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0xdd
+    ram0[1] = 0x86
+    ram0[2] = 3
+    cpu.step()
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.f == 0x80)
+    my_assert(cpu.a == 0x89)
 
 def test_or():
     # OR B
