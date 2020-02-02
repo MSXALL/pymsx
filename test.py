@@ -864,6 +864,18 @@ def test_add():
     my_assert(cpu.f == (0x01 & 0xd7))
     my_assert(cpu.pc == 1)
 
+    # ADD B
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xf0
+    cpu.c = 0x21 # 
+    cpu.f = 0
+    ram0[0] = 0x81
+    cpu.step()
+    my_assert(cpu.a == 0x11)
+    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.pc == 1)
+
     # ADD L
     reset_mem()
     cpu.reset()
@@ -1806,6 +1818,37 @@ def test_set():
     my_assert(cpu.get_flag_z() == False)
 
 def test_bit():
+    # BIT 0,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0x10
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x41
+    cpu.step()
+    my_assert(cpu.c == 0x10)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+    my_assert(cpu.get_flag_h() == True)
+    my_assert(cpu.get_flag_z() == False)
+
+    # BIT 0,(HL)
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x10
+    cpu.l = 0x00
+    cpu.write_mem(0x1000, 0xff)
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x46
+    cpu.step()
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+    my_assert(cpu.get_flag_h() == True)
+    my_assert(cpu.get_flag_z() == True)
+
     # BIT 4,C
     reset_mem()
     cpu.reset()
