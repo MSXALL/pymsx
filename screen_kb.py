@@ -140,6 +140,8 @@ class screen_kb(threading.Thread):
 
                 self.redraw = False
 
+            msg = self.debug_msg[0:79]
+
             # redraw
             vm = self.video_mode()
             if vm == 4:  # 40 x 24
@@ -171,9 +173,12 @@ class screen_kb(threading.Thread):
                         bg = col & 15
                         self.win.addch(y, x, c, curses.color_pair(fg * 16 + bg))
 
+            else:
+                msg = 'Unsupported resolution'
+
             self.debug_msg_lock.acquire()
             if self.debug_msg:
-                self.win.addstr(25, 0, self.debug_msg[0:79])
+                self.win.addstr(25, 0, msg)
             self.debug_msg_lock.release()
 
             self.win.noutrefresh()
