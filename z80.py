@@ -439,12 +439,16 @@ class z80:
         return (v >> 8, v & 0xff)
 
     def compl8(self, v):
+        assert v >= 0 and v <= 255
+
         if v >= 128:
             return -(256 - v)
 
         return v
 
     def compl16(self, v):
+        assert v >= 0 and v <= 65535
+
         if v >= 32768:
             return -(65536 - v)
 
@@ -969,10 +973,12 @@ class z80:
 
         self.set_flag_z(after == 0)
 
-        before = self.compl8(before)
-        value = self.compl8(value)
-        after = self.compl8(after & 0xff)
         self.set_flag_pv((before < 0 and value >= 0 and after >= 0) or (before >= 0 and value < 0 and after < 0))
+
+        before_sign = self.a & 0x80
+        value_sign = value & 0x80
+        after_sign = after & 0x80
+        self.set_flag_pv(before_sign != value_sign and after_sign != before_sign)
 
         self.set_flag_s((after & 128) == 128)
 
