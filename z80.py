@@ -1784,7 +1784,7 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(True)
 
-        self.set_flag_z((val & (1 << nr)) != 0)
+        self.set_flag_z((val & (1 << nr)) == 0)
 
         self.debug('BIT %d, %s' % (nr, src_name))
 

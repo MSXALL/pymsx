@@ -1821,17 +1821,14 @@ def test_bit():
     # BIT 0,C
     reset_mem()
     cpu.reset()
-    cpu.c = 0x10
+    cpu.c = 0xff
     cpu.f = 0
     ram0[0] = 0xcb
     ram0[1] = 0x41
     cpu.step()
-    my_assert(cpu.c == 0x10)
+    my_assert(cpu.c == 0xff)
     my_assert(cpu.pc == 2)
-    my_assert(cpu.get_flag_c() == False)
-    my_assert(cpu.get_flag_n() == False)
-    my_assert(cpu.get_flag_h() == True)
-    my_assert(cpu.get_flag_z() == False)
+    my_assert(cpu.f == (0x11 & 0xd6))
 
     # BIT 0,(HL)
     reset_mem()
@@ -1847,7 +1844,7 @@ def test_bit():
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
     my_assert(cpu.get_flag_h() == True)
-    my_assert(cpu.get_flag_z() == True)
+    my_assert(cpu.get_flag_z() == False)
 
     # BIT 4,C
     reset_mem()
@@ -1862,7 +1859,7 @@ def test_bit():
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
     my_assert(cpu.get_flag_h() == True)
-    my_assert(cpu.get_flag_z() == True)
+    my_assert(cpu.get_flag_z() == False)
 
     # BIT 4,C
     reset_mem()
@@ -1877,7 +1874,7 @@ def test_bit():
     my_assert(cpu.get_flag_c() == True)
     my_assert(cpu.get_flag_n() == False)
     my_assert(cpu.get_flag_h() == True)
-    my_assert(cpu.get_flag_z() == False)
+    my_assert(cpu.get_flag_z() == True)
 
 def test_ldi_r():
     # LDIR
