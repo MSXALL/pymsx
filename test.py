@@ -1245,16 +1245,78 @@ def test_ccf():
     my_assert(cpu.pc == 1)
     my_assert(cpu.f == 0xec)
 
-def test_bit():
-    # BIT 4,C
+def test_res():
+    # RES 0,C
     reset_mem()
     cpu.reset()
     cpu.c = 0xff
     cpu.f = 0
     ram0[0] = 0xcb
-    ram0[1] = 0x61
+    ram0[1] = 0x81
+    cpu.step()
+    my_assert(cpu.c == 0xfe)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_z() == False)
+
+    # RES 7,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0xff
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0xb9
+    cpu.step()
+    my_assert(cpu.c == 0x7f)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_z() == False)
+
+def test_set():
+    # SET 0,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0xfe
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0xc1
     cpu.step()
     my_assert(cpu.c == 0xff)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_z() == False)
+
+    # SET 7,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0x7f
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0xf9
+    cpu.step()
+    my_assert(cpu.c == 0xff)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_z() == False)
+
+def test_bit():
+    # BIT 4,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0x10
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x61
+    cpu.step()
+    my_assert(cpu.c == 0x10)
     my_assert(cpu.pc == 2)
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
@@ -1331,10 +1393,12 @@ test_nop()
 test_or()
 test_out_in()
 test_push_pop()
+test_res()
 test_rlca_rlc_rl_rla()
 test_rr()
 test_rrca()
 test_rst()
+test_set()
 test_sla()
 test_sub()
 test_xor()

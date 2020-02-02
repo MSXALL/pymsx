@@ -646,13 +646,16 @@ class z80:
             self._srl(minor2)
 
         elif major >= 0x04 and major <= 0x07:
-            self._bit(instr >> 5, minor2)
+            i = instr - 0x40
+            self._bit(i >> 3, minor2)
 
         elif major >= 0x08 and major <= 0x0b:
-            self._reset(instr >> 5, minor2)
+            i = instr - 0x80
+            self._res(i >> 3, minor2)
 
         elif major >= 0x0c:
-            self._set(instr >> 5, minor2)
+            i = instr - 0xc0
+            self._set(i >> 3, minor2)
 
         else:
             self.ui(ui)
@@ -1674,14 +1677,14 @@ class z80:
     def _set(self, bit, src):
         (val, src_name) = self.get_src(src)
 
-        val &= 1 << bit
+        val |= 1 << bit
 
         dst = src
         self.set_dst(dst, val)
 
         self.debug('SET %d, %s' % (bit, src_name))
 
-    def _reset(self, bit, src):
+    def _res(self, bit, src):
         (val, src_name) = self.get_src(src)
 
         val &= ~(1 << bit)
