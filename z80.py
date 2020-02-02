@@ -1306,30 +1306,30 @@ class z80:
 
         elif major == 0x04:
             if minor == 0x06:
-                self._add_b_ix_deref()
+                self._ld_X_ix_deref(instr)
 
             elif minor == 0x0e:
-                self._ld_c_ix_im()
+                self._ld_X_ix_deref(instr)
 
             else:
                 self.ui(ui)
 
         elif major == 0x05:
             if minor == 0x06:
-                self._add_d_ix_deref()
+                self._ld_X_ix_deref(instr)
 
             elif minor == 0x0e:
-                self._ld_e_ix_im()
+                self._ld_X_ix_deref(instr)
 
             else:
                 self.ui(ui)
 
         elif major == 0x06:
             if minor == 0x06:
-                self._add_h_ix_deref()
+                self._ld_X_ix_deref(instr)
 
             elif minor == 0x0e:
-                self._ld_l_ix_im()
+                self._ld_X_ix_deref(instr)
 
             else:
                 self.ui(ui)
@@ -1337,16 +1337,12 @@ class z80:
         elif major == 0x07:
             if minor <= 0x05:
                 self._ld_ix_X(minor)
+ 
+            elif minor == 0x06:
+                self._ld_X_ix_deref(instr)
 
             elif minor == 0x0e:
                 self._ld_ix_im()
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x08:
-            if minor == 0x06:
-                self._add_a_ix_deref()
 
             else:
                 self.ui(ui)
@@ -1970,30 +1966,6 @@ class z80:
 
         self.debug('LD (IX + *),%s' % src_name)
 
-    def _ld_c_ix_im(self):
-        offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
-
-        self.c = self.read_mem(a)
-
-        self.debug('LD C,(IX+*)')
-
-    def _ld_e_ix_im(self):
-        offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
-
-        self.e = self.read_mem(a)
-
-        self.debug('LD E,(IX+*)')
-
-    def _ld_l_ix_im(self):
-        offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
-
-        self.l = self.read_mem(a)
-
-        self.debug('LD L,(IX+*)')
-
     def _ldi(self):
         self.set_flag_n(False)
         self.set_flag_pv(False)
@@ -2099,58 +2071,38 @@ class z80:
 
         self.debug('AND (IX+*)')
 
-    def _add_a_ix_deref(self):
+    def _ld_X_ix_deref(self, which):
         offset = self.read_pc_inc()
         a = (self.ix + offset) & 0xffff
 
         v = self.read_mem(a)
  
-        result = self.a + v
-
-        self.set_add_flags(self.a, v, result)
-
-        self.a = result & 0xff
-
-        self.debug('ADD A,(IX+*)')
-
-    def _add_b_ix_deref(self):
-        offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
-
-        v = self.read_mem(a)
+        if which == 0x46:
+            self.b = v
+            name = 'B'
  
-        result = self.b + v
-
-        self.set_add_flags(self.b, v, result)
-
-        self.b = result & 0xff
-
-        self.debug('ADD B,(IX+*)')
-
-    def _add_d_ix_deref(self):
-        offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
-
-        v = self.read_mem(a)
+        elif which == 0x4e:
+            self.c = v
+            name = 'C'
  
-        result = self.d + v
-
-        self.set_add_flags(self.d, v, result)
-
-        self.d = result & 0xff
-
-        self.debug('ADD D,(IX+*)')
-
-    def _add_h_ix_deref(self):
-        offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
-
-        v = self.read_mem(a)
+        elif which == 0x56:
+            self.d = v
+            name = 'D'
  
-        result = self.h + v
+        elif which == 0x5e:
+            self.e = v
+            name = 'E'
+ 
+        elif which == 0x66:
+            self.h = v
+            name = 'H'
+ 
+        elif which == 0x6e:
+            self.l = v
+            name = 'L'
+ 
+        elif which == 0x76:
+            self.a = v
+            name = 'A'
 
-        self.set_add_flags(self.h, v, result)
-
-        self.h = result & 0xff
-
-        self.debug('ADD H,(IX+*)')
+        self.debug('LD %s,(IX+*)' % name)

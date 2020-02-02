@@ -22,6 +22,7 @@ class scc:
         p = self.scc_pages[bank] * 0x2000 + offset
 
         if (offset & 0x1000) == 0x1000: # 0x5000, 0x7000 and so on
+            assert v != 181
             if v < 255:
                 self.debug('Set bank %d to %d' % (bank, v))
                 self.scc_pages[bank] = v
