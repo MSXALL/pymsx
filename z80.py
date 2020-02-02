@@ -127,6 +127,9 @@ class z80:
                 elif major == 0x01:
                     self._rla()
 
+                elif major == 0x02:
+                    self._daa()
+
                 elif major == 0x03:
                     self._scf()
 
@@ -2148,3 +2151,37 @@ class z80:
 
         self.debug('ADD A,(%s+*)' % name)
 
+    # from https://stackoverflow.com/questions/8119577/z80-daa-instruction/8119836
+    def _daa(self):
+        t = 0
+
+        if self.get_flag_h() or (self.a & 0x0f) > 9:
+            t += 1
+
+        if self.get_flag_c() or self.a > 0x99:
+            t += 2
+            self.set_flag_c(True)
+
+        if self.get_flag_n() and not self.get_flag_h():
+            self.set_flag_h(False)
+
+        else:
+            if self.get_flag_n() and self.get_flag_h():
+                self.set_flag_h((self.a & 0x0f) < 6)
+            else:
+                self.set_flag_h((self.a & 0x0f) >= 0x0a)
+
+        if t == 1:
+            self.a += 0xfa if self.get_flag_n() else 0x06
+
+        elif t == 2:
+            self.a += 0xa0 if self.get_flag_n() else 0x60
+
+        elif t == 3:
+            self.a += 0x9a if self.get_flag_n() else 0x66
+
+        self.set_flag_s((self.a & 128) == 128)
+        self.set_flag_z(self.a == 0x00)
+        self.set_flag_pv(self.parity(self.a))
+
+        self.debug('DAA')

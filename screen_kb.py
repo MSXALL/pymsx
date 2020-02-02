@@ -126,6 +126,9 @@ class screen_kb(threading.Thread):
                     c = self.win.getch()
 
                     if c != -1:
+                        if c == 13:
+                            self.debug("MARKER")
+
                         self.k_lock.acquire()
                         self.keyboard_queue.append(c)
                         self.k_lock.release()

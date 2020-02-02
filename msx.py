@@ -31,7 +31,7 @@ scc_sig = None
 
 disk_sig = None
 disk_rom_file = 'FSFD1.ROM'
-disk_image_file = 'nondos.dsk' # 'md1.dsk'
+disk_image_file = 'mania051-with-Ultra_chess-by-Aackosoft.dsk'
 disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
 disk_sig = disk_obj.get_signature() if disk_obj else None
 
