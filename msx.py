@@ -11,14 +11,17 @@ from screen_kb import screen_kb
 
 io = [ 0 ] * 256
 
+subpage = 0xff
+
 fh = open('msxbiosbasic.rom', 'rb')
 rom0 = [ int(b) for b in fh.read(16384) ]
 rom1 = [ int(b) for b in fh.read(16384) ]
 fh.close()
 
 def debug(x):
-    dk.debug('%s <%02x>' % (x, io[0xa8]))
-    print('%s <%02x>' % (x, io[0xa8]), file=sys.stderr)
+    global subpage
+    dk.debug('%s <%02x/%02x>' % (x, io[0xa8], subpage))
+    print('%s <%02x/%02x>' % (x, io[0xa8], subpage), file=sys.stderr)
 
 scc_rom_file = None # 'md1.rom'
 scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
@@ -37,8 +40,8 @@ ram3 = [ 0 ] * 16384
 
 slots = [ ] # slots
 slots.append(( (rom0, PageType.ROM), None, None, (ram0, PageType.RAM) ))
-slots.append(( (rom1, PageType.ROM), scc_sig, disk_sig, (ram1, PageType.RAM) ))
-slots.append(( None, scc_sig, None, (ram2, PageType.RAM) ))
+slots.append(( (rom1, PageType.ROM), disk_sig, scc_sig, (ram1, PageType.RAM) ))
+slots.append(( None, None, scc_sig, (ram2, PageType.RAM) ))
 slots.append(( None, None, None, (ram3, PageType.RAM) ))
 
 pages = [ 0, 0, 0, 0]
