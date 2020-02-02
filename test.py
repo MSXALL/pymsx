@@ -387,11 +387,22 @@ def test_cpl():
     ram0[0] = 0x2f
     cpu.step()
     my_assert(cpu.a == 0x0f)
-    my_assert(cpu.f == 18)
+    my_assert(cpu.f == 0x12)
+    my_assert(cpu.pc == 1)
+
+    # CPL
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x00
+    cpu.f = 0
+    ram0[0] = 0x2f
+    cpu.step()
+    my_assert(cpu.a == 0xff)
+    my_assert(cpu.f == 0x12)
     my_assert(cpu.pc == 1)
 
 def test__flags():
-    # CPL
+    # test flags
     reset_mem()
     cpu.reset()
 
@@ -686,7 +697,7 @@ def test_add():
     cpu.f = 0
     ram0[0] = 0x37
     cpu.step()
-    assert(cpu.get_flag_c())
+    my_assert(cpu.get_flag_c())
     ram0[1] = 0x88
     cpu.step()
     my_assert(cpu.a == 0x12)
@@ -733,6 +744,18 @@ def test_or():
     my_assert(cpu.f == (0x80 & 0xd7))
     my_assert(cpu.pc == 2)
 
+    # OR *
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x7f
+    cpu.f = 0
+    ram0[0] = 0xf6
+    ram0[1] = 0xf1
+    cpu.step()
+    my_assert(cpu.a == 0xff)
+    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.pc == 2)
+
 def test_and():
     # AND B
     reset_mem()
@@ -758,6 +781,18 @@ def test_and():
     my_assert(cpu.f == (0x10 & 0xd7))
     my_assert(cpu.pc == 2)
 
+    # AND *
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x7f
+    cpu.f = 0
+    ram0[0] = 0xe6
+    ram0[1] = 0xf1
+    cpu.step()
+    my_assert(cpu.a == 0x71)
+    my_assert(cpu.f == (0x14 & 0xd7))
+    my_assert(cpu.pc == 2)
+
 def test_xor():
     # XOR B
     reset_mem()
@@ -781,6 +816,18 @@ def test_xor():
     ram0[1] = 0x21
     cpu.step()
     my_assert(cpu.a == 0xd1)
+    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.pc == 2)
+
+    # XOR *
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x7f
+    cpu.f = 0
+    ram0[0] = 0xee
+    ram0[1] = 0xf1
+    cpu.step()
+    my_assert(cpu.a == 0x8e)
     my_assert(cpu.f == (0x84 & 0xd7))
     my_assert(cpu.pc == 2)
 
@@ -832,6 +879,19 @@ def test_sla():
     cpu.reset()
     cpu.b = 0x21
     cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x20
+    cpu.step()
+    my_assert(cpu.a == 0xff)
+    my_assert(cpu.b == 0x42)
+    my_assert(cpu.f == 0x04)
+    my_assert(cpu.pc == 2)
+
+    # SLA B
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x21
+    cpu.f = 1
     ram0[0] = 0xcb
     ram0[1] = 0x20
     cpu.step()
@@ -929,6 +989,16 @@ def test_jr():
     my_assert(cpu.f == 64)
     my_assert(cpu.pc == 2)
 
+    # JR 9
+    reset_mem()
+    cpu.reset()
+    cpu.f = 0
+    ram0[0] = 0x18
+    ram0[1] = 0x09
+    cpu.step()
+    my_assert(cpu.f == 0x00)
+    my_assert(cpu.pc == 0x0b)
+
 def test_djnz():
     # DJNZ -2 not taken
     reset_mem()
@@ -1019,6 +1089,28 @@ def test_inc():
     my_assert(cpu.f == (0x51 & 0xd7))
     my_assert(cpu.pc == 1)
 
+    # INC b
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x7f
+    cpu.f = 1
+    ram0[0] = 0x04
+    cpu.step()
+    my_assert(cpu.b == 0x80)
+    my_assert(cpu.f == (0x95 & 0xd7))
+    my_assert(cpu.pc == 1)
+
+    # INC b
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x0f
+    cpu.f = 1
+    ram0[0] = 0x04
+    cpu.step()
+    my_assert(cpu.b == 0x10)
+    my_assert(cpu.f == (0x11 & 0xd7))
+    my_assert(cpu.pc == 1)
+
     # INC de
     reset_mem()
     cpu.reset()
@@ -1059,6 +1151,17 @@ def test_dec():
     my_assert(cpu.f == (0x17 & 0xd7))
     my_assert(cpu.pc == 1)
 
+    # DEC b
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x04
+    cpu.f = 1
+    ram0[0] = 0x05
+    cpu.step()
+    my_assert(cpu.b == 0x03)
+    my_assert(cpu.f == (0x03 & 0xd7))
+    my_assert(cpu.pc == 1)
+
     # DEC de
     reset_mem()
     cpu.reset()
@@ -1095,11 +1198,34 @@ def test_rlca_rlc_rl_rla():
     my_assert(cpu.f == (0x01 & 0xd7))
     my_assert(cpu.pc == 1)
 
+    # RLCA
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xe1
+    cpu.f = 1
+    ram0[0] = 0x07
+    cpu.step()
+    my_assert(cpu.a == 0xc3)
+    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.pc == 1)
+
     # RLC B
     reset_mem()
     cpu.reset()
     cpu.b = 0xe1
     cpu.f = 1
+    ram0[0] = 0xcb
+    ram0[1] = 0x00
+    cpu.step()
+    my_assert(cpu.b == 0xc3)
+    my_assert(cpu.f == (0x85 & 0xd7))
+    my_assert(cpu.pc == 2)
+
+    # RLC B
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0xe1
+    cpu.f = 0
     ram0[0] = 0xcb
     ram0[1] = 0x00
     cpu.step()
@@ -1119,6 +1245,18 @@ def test_rlca_rlc_rl_rla():
     my_assert(cpu.f == (0x80 & 0xd7))
     my_assert(cpu.pc == 2)
 
+    # RL B
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x71
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x10
+    cpu.step()
+    my_assert(cpu.b == 0xe2)
+    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.pc == 2)
+
     # RLA
     reset_mem()
     cpu.reset()
@@ -1127,6 +1265,17 @@ def test_rlca_rlc_rl_rla():
     ram0[0] = 0x17
     cpu.step()
     my_assert(cpu.a == 0xc3)
+    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.pc == 1)
+
+    # RLA
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xe1
+    cpu.f = 0
+    ram0[0] = 0x17
+    cpu.step()
+    my_assert(cpu.a == 0xc2)
     my_assert(cpu.f == (0x01 & 0xd7))
     my_assert(cpu.pc == 1)
 
@@ -1290,7 +1439,7 @@ def test_res():
     my_assert(cpu.pc == 2)
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
-#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_h() == False)
     my_assert(cpu.get_flag_z() == False)
 
     # RES 7,C
@@ -1305,7 +1454,7 @@ def test_res():
     my_assert(cpu.pc == 2)
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
-#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_h() == False)
     my_assert(cpu.get_flag_z() == False)
 
 def test_set():
@@ -1321,7 +1470,7 @@ def test_set():
     my_assert(cpu.pc == 2)
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
-#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_h() == False)
     my_assert(cpu.get_flag_z() == False)
 
     # SET 7,C
@@ -1336,7 +1485,7 @@ def test_set():
     my_assert(cpu.pc == 2)
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
-#    my_assert(cpu.get_flag_h() == True) FIXME
+    my_assert(cpu.get_flag_h() == False)
     my_assert(cpu.get_flag_z() == False)
 
 def test_bit():
