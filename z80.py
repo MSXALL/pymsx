@@ -1457,6 +1457,12 @@ class z80:
             self.write_mem_16(a, self.m16(self.b, self.c))
             self.debug('LD (0x%04x), BC' % a)
 
+        elif instr == 0x5b:
+            a = self.read_pc_inc_16()
+            v = self.read_mem_16(a)
+            (self.b, self.c) = self.u16(v)
+            self.debug('LD BC,(0x%04x) [%04x]' % (a, v))
+
         elif instr == 0x53:
             a = self.read_pc_inc_16()
             self.write_mem_16(a, self.m16(self.d, self.h))
