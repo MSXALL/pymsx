@@ -3,6 +3,7 @@
 import sys
 import threading
 import time
+from disk import disk
 from pagetype import PageType
 from scc import scc
 from z80 import z80
@@ -19,26 +20,13 @@ def debug(x):
     dk.debug('%s <%02x>' % (x, io[0xa8]))
     print('%s <%02x>' % (x, io[0xa8]), file=sys.stderr)
 
-scc_rom_file = 'md1.rom'
+scc_rom_file = None # 'md1.rom'
 scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
-scc_sig = scc_obj.get_signature()
+scc_sig = scc_obj.get_signature() if scc_obj else None
 
-game_rom_file = None #'MSX-DOS1.rom' # '../../msx/trunk/docs/magical.rom'
-game = None
-if game_rom_file:
-    print('Loading SCC rom %s...' % game_rom_file, file=sys.stderr)
-
-    fh = open(game_rom_file, 'rb')
-    game_rom = [ int(b) for b in fh.read() ]
-    fh.close()
-
-    game = (game_rom, PageType.ROM)
-
-def read_disk(s, a):
-    pass   
-
-def write_disk(s, a, v):
-    pass   
+disk_rom_file = 'FSFD1.ROM'
+disk_obj = disk(disk_rom_file, debug) if disk_rom_file else None
+disk_sig = disk_obj.get_signature() if disk_obj else None
 
 subpage = 0x00
 
@@ -49,7 +37,7 @@ ram3 = [ 0 ] * 16384
 
 slots = [ ] # slots
 slots.append(( (rom0, PageType.ROM), None, None, (ram0, PageType.RAM) ))
-slots.append(( (rom1, PageType.ROM), scc_sig, game, (ram1, PageType.RAM) ))
+slots.append(( (rom1, PageType.ROM), scc_sig, disk_sig, (ram1, PageType.RAM) ))
 slots.append(( None, scc_sig, None, (ram2, PageType.RAM) ))
 slots.append(( None, None, None, (ram3, PageType.RAM) ))
 
@@ -71,7 +59,8 @@ def read_mem(a):
         return obj.read_mem(a)
 
     if slots[page][pages[page]][1] == PageType.DISK:
-        return read_disk(slots[page][pages[page]][2], a)
+        obj = slots[page][pages[page]][2]
+        return obj.read_mem(a)
 
     return slots[page][pages[page]][0][a & 0x3fff]
 
@@ -100,7 +89,8 @@ def write_mem(a, v):
         return
     
     if slots[page][pages[page]][1] == PageType.DISK:
-        write_disk(slots[page][pages[page]][2], a, v)
+        obj = slots[page][pages[page]][2]
+        obj.write_mem(a, v)
         return
 
     slots[page][pages[page]][0][a & 0x3fff] = v
