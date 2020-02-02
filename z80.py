@@ -1550,7 +1550,7 @@ class z80:
             self._in_ed_low(major - 4)
 
         elif minor == 2 and major >= 4 and major <= 7:
-            self._sbc16(major - 4)
+            self._sbc_pair(major - 4)
 
         elif minor == 5 and major >= 4 and major <= 7:
             self._neg()
@@ -1920,7 +1920,7 @@ class z80:
 
         self.debug('RES %d, %s' % (bit, src_name))
 
-    def _sbc16(self, which):
+    def _sbc_pair(self, which):
         (v, name) = self.get_pair(which)
 
         before = self.m16(self.h, self.l)
@@ -1931,11 +1931,12 @@ class z80:
         self.set_flag_z((after & 0xffff) == 0)
         self.set_flag_n(True)
         self.set_flag_s((after & 0x8000) == 0x8000)
+        self.set_flag_h((((before & 0x0fff) - (value & 0x0fff)) & 0x1000) == 0x1000)
 
-        before = self.compl16(before)
-        value = self.compl16(value)
-        after = self.compl16(after & 0xffff)
-        self.set_flag_pv((before >= 0 and value >= 0 and after < 0) or (before < 0 and value < 0 and after >= 0))
+        before_sign = before & 0x8000;
+        value_sign = value & 0x8000;
+        after_sign = after & 0x8000;
+        self.set_flag_pv(before_sign != value_sign and after_sign != before_sign)
  
         self.set_pair(2, after & 0xffff)
 
