@@ -1084,6 +1084,26 @@ class z80:
 
         self.debug('INC %s' % name)
 
+    def _add_pair_ixy(self, which, is_ix):
+        org_val = val = self.ix if is_ix else self.iy
+
+        (v, name) = self.get_pair(which)
+        val += v
+
+        self.set_flag_h((((org_val & 0x0fff) + (v & 0x0fff)) & 0x1000) == 0x1000)
+        self.set_flag_c((val & 0x10000) == 0x10000)
+        self.set_flag_n(False);
+
+        val &= 0xffff
+
+        if is_ix:
+            self.ix = val
+            self.debug('ADD IX, %s' % name)
+
+        else:
+            self.iy = val
+            self.debug('ADD IY, %s' % name)
+
     def _add_pair(self, which, is_adc):
         org_val = val = self.m16(self.h, self.l)
 
@@ -1255,9 +1275,26 @@ class z80:
         minor1 = instr & 8
         minor2 = instr & 7
 
-        if major == 0x02:
+        if major == 0x00:
+            if minor == 0x09:
+                self._add_pair_ixy(major, False)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x01:
+            if minor == 0x09:
+                self._add_pair_ixy(major, False)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x02:
             if minor == 0x01:  # LD IY,**
                 self._ld_iy()
+
+            elif minor == 0x09:
+                self._add_pair_ixy(major, False)
 
             elif minor == 0x0a:
                 a = self.read_pc_inc_16()
@@ -1271,6 +1308,9 @@ class z80:
         elif major == 0x04:
             if minor == 0x06:
                 self._ld_X_ixy_deref(instr, False)
+
+            elif minor == 0x09:
+                self._add_pair_ixy(major, False)
 
             elif minor == 0x0e:
                 self._ld_X_ixy_deref(instr, False)
@@ -1341,7 +1381,21 @@ class z80:
         minor1 = instr & 8
         minor2 = instr & 7
 
-        if major == 0x02:
+        if major == 0x00:
+            if minor == 0x09:
+                self._add_pair_ixy(major, True)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x01:
+            if minor == 0x09:
+                self._add_pair_ixy(major, True)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x02:
             if minor == 0x01:  # LD IX,**
                 self._ld_ix()
 
@@ -1353,11 +1407,21 @@ class z80:
             elif minor == 0x03:  # INC IX
                 self._inc_ix()
 
+            elif minor == 0x09:
+                self._add_pair_ixy(major, True)
+
             elif minor == 0x0a:
                 a = self.read_pc_inc_16()
                 v = self.read_mem_16(a)
                 ix = self.u16(v)
                 self.debug('LD IX,(0x%04x)' % a)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x03:
+            if minor == 0x09:
+                self._add_pair_ixy(major, True)
 
             else:
                 self.ui(ui)
