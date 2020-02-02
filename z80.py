@@ -1105,21 +1105,29 @@ class z80:
             self.debug('ADD IY, %s' % name)
 
     def _add_pair(self, which, is_adc):
-        org_val = val = self.m16(self.h, self.l)
+        before = self.m16(self.h, self.l)
 
-        (v, name) = self.get_pair(which)
-        val += v
-
+        (value, name) = self.get_pair(which)
         if is_adc:
-            val += self.get_flag_c()
+            value += self.get_flag_c()
 
-        self.set_flag_h((((org_val & 0x0fff) + (v & 0x0fff)) & 0x1000) == 0x1000)
-        self.set_flag_c((val & 0x10000) == 0x10000)
+        after = before + value
+
+        self.set_flag_h((((before & 0x0fff) + (value & 0x0fff)) & 0x1000) == 0x1000)
+        self.set_flag_c((after & 0x10000) == 0x10000)
         self.set_flag_n(False);
 
-        val &= 0xffff
+        ### strange: http://clrhome.org/table/ says sign & p/v are not affected
+        before_sign = before & 0x8000;
+        value_sign = value & 0x8000;
+        after_sign = after & 0x8000;
+        self.set_flag_pv(before_sign == value_sign and after_sign != before_sign)
+        self.set_flag_s((after & 0x8000) == 0x8000)
+        ###
 
-        (self.h, self.l) = self.u16(val)
+        after &= 0xffff
+
+        (self.h, self.l) = self.u16(after)
 
         self.debug('ADD HL, %s' % name)
 

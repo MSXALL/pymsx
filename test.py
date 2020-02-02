@@ -915,20 +915,36 @@ def test_add():
     my_assert(cpu.f == (0x01 & 0xd7))
     my_assert(cpu.pc == 2)
 
-    # ADD HL,BC
+    # ADD HL,BC [1]
     reset_mem()
     cpu.reset()
-    cpu.h = 0xf0
-    cpu.l = 0x21
-    cpu.b = 0x03
-    cpu.c = 0x57
+    cpu.h = 0x21
+    cpu.l = 0xf0
+    cpu.b = 0x57
+    cpu.c = 0x03
     cpu.f = 0
     ram0[0] = 0x09
     cpu.step()
-    my_assert(cpu.h == 0xf3)
-    my_assert(cpu.l == 0x78)
+    my_assert(cpu.h == 0x78)
+    my_assert(cpu.l == 0xf3)
     my_assert(cpu.f == (0x00 & 0xd7))
     my_assert(cpu.pc == 1)
+
+    # ADD HL,BC [2]
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x0f
+    cpu.l = 0x0f
+    cpu.b = 0x7f
+    cpu.c = 0x7f
+    cpu.f = 1
+    ram0[0] = 0xed
+    ram0[1] = 0x4a
+    cpu.step()
+    my_assert(cpu.h == 0x8e)
+    my_assert(cpu.l == 0x8f)
+    my_assert(cpu.f == (0x94 & 0xd7))
+    my_assert(cpu.pc == 2)
 
     # ADD A,(IX+*)
     reset_mem()
