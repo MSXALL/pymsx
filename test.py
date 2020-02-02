@@ -713,6 +713,21 @@ def test_cp():
     my_assert(cpu.f == (0xb2 & 0xd7))
     my_assert(cpu.pc == 2)
 
+    # CP (IX+*)
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xf0
+    cpu.f = 0
+    cpu.ix = 0x1000
+    cpu.write_mem(0x1003, 0x21)
+    ram0[0] = 0xdd
+    ram0[1] = 0xbe
+    ram0[2] = 0x03
+    cpu.step()
+    my_assert(cpu.a == 0xf0)
+    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.pc == 3)
+
 def test_add():
     # ADD B
     reset_mem()
