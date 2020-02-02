@@ -182,7 +182,7 @@ class disk:
         if offset >= 0x3ff0: # HW registers
             reg = offset - 0x3ff0
 
-            self.debug('Read DISK register %02x' % reg)
+            #self.debug('Read DISK register %02x' % reg)
 
             if reg == 0x08:
                 if self.tc == 1 or self.tc == 4:
@@ -203,6 +203,18 @@ class disk:
 
                 else:
                     self.flags &= ~(self.T2_DRQ | self.T2_BUSY | 32)
+
+            elif reg == 0x0f:
+                v = 0
+
+                if self.flags & self.T2_DRQ:
+                        v |= 128
+                        self.flags &= ~self.T2_DRQ
+
+                if self.flags & self.T2_BUSY:
+                        v |= 64
+
+                return v
 
             return self.regs[reg]
 
