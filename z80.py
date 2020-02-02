@@ -1333,8 +1333,19 @@ class z80:
             if minor == 0x01:  # LD IX,**
                 self._ld_ix()
 
+            elif minor == 0x02:  # LD (**),IX
+                a = self.read_pc_inc_16()
+                self.write_mem_16(a, self.ix)
+                self.debug('LD (0x%04x),IX' % a)
+
             elif minor == 0x03:  # INC IX
                 self._inc_ix()
+
+            elif minor == 0x0a:
+                a = self.read_pc_inc_16()
+                v = self.read_mem_16(a)
+                ix = self.u16(v)
+                self.debug('LD IX,(0x%04x)' % a)
 
             else:
                 self.ui(ui)

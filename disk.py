@@ -1,3 +1,4 @@
+import struct
 import sys
 from pagetype import PageType
 
@@ -15,12 +16,14 @@ class disk:
     T2_DRQ = 0x02
     T2_NOTREADY = 0x80
 
-    def __init__(self, disk_rom_file, debug):
+    def __init__(self, disk_rom_file, debug, disk_image_file):
         print('Loading disk rom %s...' % disk_rom_file, file=sys.stderr)
 
         fh = open(disk_rom_file, 'rb')
         self.disk_rom = [ int(b) for b in fh.read() ]
         fh.close()
+
+        self.fh = open(disk_image_file, 'ab+')
 
         self.regs = [ 0 ] * 16
 
@@ -34,6 +37,9 @@ class disk:
         self.step_dir = 1
 
         self.debug = debug
+
+    def file_offset(self, side, track, sector):
+        return (sector - 1)* 512 + (track * 9 * 512) + (80 * 9 * 512) * side;
 
     def get_signature(self):
         return (self.disk_rom, PageType.DISK, self)
@@ -122,7 +128,11 @@ class disk:
                 elif command == 8 or command == 9:  # read sector
                     self.bufp = 0
                     self.need_flush = False
-                    # FIXME load to self.buffer
+
+                    side = 1 if (self.regs[0x0c] & 10) == 10 else 0
+                    self.fh.seek(self.file_offset(side, self.regs[0x09], self.regs[0x0a]))
+                    for i in range(0, 512):
+                        self.buffer[i] = struct.unpack('<B', self.fh.read(1))[0]
 
                     self.tc = 2
 
@@ -166,7 +176,10 @@ class disk:
                     self.bufp += 1
 
                     if self.bufp == 512 and self.need_flush:
-                        # FIXME write to disk
+                        side = 1 if (self.regs[0x0c] & 0x10) == 0x10 else 0
+                        self.fh.seek(self.file_offset(side, self.regs[0x09], self.regs[0x0a]))
+                        self.fh.write(bytes(self.buffer))
+                        self.fh.flush()
 
                         self.flags &= ~(self.T2_DRQ | self.T2_BUSY)
 
