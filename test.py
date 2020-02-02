@@ -961,6 +961,20 @@ def test_add():
     my_assert(cpu.f == 0x80)
     my_assert(cpu.a == 0x89)
 
+    # ADD IX,BC
+    reset_mem()
+    cpu.reset()
+    cpu.ix = 0x0f0f
+    cpu.b = 0x7f
+    cpu.c = 0x7f
+    cpu.f = 1
+    ram0[0] = 0xdd
+    ram0[1] = 0x09
+    cpu.step()
+    my_assert(cpu.ix == 0x8e8e)
+    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.pc == 2)
+
 def test_or():
     # OR B
     reset_mem()
