@@ -1306,8 +1306,11 @@ class z80:
                 self.ui(ui)
 
         elif major == 0x03:
-            elif minor == 0x09:
+            if minor == 0x09:
                 self._add_pair_ixy(major, False)
+
+            else:
+                self.ui(ui)
 
         elif major == 0x04:
             if minor == 0x06:
