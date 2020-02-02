@@ -1155,7 +1155,7 @@ def test_push_pop():
     cpu._push(3) # 0xf0 PUSH AF
     cpu._push(1) # 0xc0 PUSH DE => 0xffff
 
-    cpu._pop(3)
+    cpu._pop(3) # POP
     my_assert(cpu.a == 0xff)
     my_assert(cpu.f == 0xff)
     cpu._pop(0)
