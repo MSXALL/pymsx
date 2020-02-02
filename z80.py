@@ -1305,12 +1305,13 @@ class z80:
             else:
                 self.ui(ui)
 
+        elif major == 0x03:
+            elif minor == 0x09:
+                self._add_pair_ixy(major, False)
+
         elif major == 0x04:
             if minor == 0x06:
                 self._ld_X_ixy_deref(instr, False)
-
-            elif minor == 0x09:
-                self._add_pair_ixy(major, False)
 
             elif minor == 0x0e:
                 self._ld_X_ixy_deref(instr, False)
