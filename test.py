@@ -1378,8 +1378,19 @@ def test_rrca():
     my_assert(cpu.f == (0x01 & 0xd7))
     my_assert(cpu.pc == 1)
 
+    # RRCA
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xe1
+    cpu.f = 1
+    ram0[0] = 0x0f
+    cpu.step()
+    my_assert(cpu.a == 0xf0)
+    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.pc == 1)
+
 def test_rr():
-    # RR
+    # RR B
     reset_mem()
     cpu.reset()
     cpu.b = 0xe1
@@ -1390,6 +1401,18 @@ def test_rr():
     my_assert(cpu.pc == 2)
     my_assert(cpu.f == (0x85 & 0xd7))
     my_assert(cpu.b == 0xf0)
+
+    # RR B
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0xe1
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x18
+    cpu.step()
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.b == 0x70)
+    my_assert(cpu.f == (0x01 & 0xd7))
 
 def test_rst():
     # RST
@@ -1426,6 +1449,15 @@ def test_ccf():
     my_assert(cpu.pc == 1)
     my_assert(cpu.f == 0xec)
 
+    # CCF
+    reset_mem()
+    cpu.reset()
+    cpu.f = 0x00
+    ram0[0] = 0x3f
+    cpu.step()
+    my_assert(cpu.pc == 1)
+    my_assert(cpu.f == 0x01)
+
 def test_res():
     # RES 0,C
     reset_mem()
@@ -1436,6 +1468,21 @@ def test_res():
     ram0[1] = 0x81
     cpu.step()
     my_assert(cpu.c == 0xfe)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+    my_assert(cpu.get_flag_h() == False)
+    my_assert(cpu.get_flag_z() == False)
+
+    # RES 0,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0x00
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x81
+    cpu.step()
+    my_assert(cpu.c == 0x00)
     my_assert(cpu.pc == 2)
     my_assert(cpu.get_flag_c() == False)
     my_assert(cpu.get_flag_n() == False)
@@ -1477,6 +1524,21 @@ def test_set():
     reset_mem()
     cpu.reset()
     cpu.c = 0x7f
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0xf9
+    cpu.step()
+    my_assert(cpu.c == 0xff)
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.get_flag_c() == False)
+    my_assert(cpu.get_flag_n() == False)
+    my_assert(cpu.get_flag_h() == False)
+    my_assert(cpu.get_flag_z() == False)
+
+    # SET 7,C
+    reset_mem()
+    cpu.reset()
+    cpu.c = 0xff
     cpu.f = 0
     ram0[0] = 0xcb
     ram0[1] = 0xf9
