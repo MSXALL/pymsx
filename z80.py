@@ -2061,7 +2061,7 @@ class z80:
         self.debug('OUTI')
 
     def _ld_ixy_X(self, which, is_ix):
-        offset = self.read_pc_inc()
+        offset = self.compl8(self.read_pc_inc())
         ixy = self.ix if is_ix else self.iy
         name = 'IX' if is_ix else 'IY'
         a = (ixy + offset) & 0xffff
@@ -2152,7 +2152,7 @@ class z80:
         self.debug('CPIR')
 
     def _cp_im_ix(self):
-        offset = self.read_pc_inc()
+        offset = self.compl8(self.read_pc_inc())
         a = (self.ix + offset) & 0xffff
 
         v  = self.read_mem(a)
@@ -2163,7 +2163,7 @@ class z80:
         self.debug('CP (IX + *)')
 
     def _and_a_ix_deref(self):
-        offset = self.read_pc_inc()
+        offset = self.compl8(self.read_pc_inc())
         a = (self.ix + offset) & 0xffff
 
         self.a &= self.read_mem(a)
@@ -2173,7 +2173,7 @@ class z80:
         self.debug('AND (IX+*)')
 
     def _ld_X_ixy_deref(self, which, is_ix):
-        offset = self.read_pc_inc()
+        offset = self.compl8(self.read_pc_inc())
         ixy = self.ix if is_ix else self.iy
         a = (ixy + offset) & 0xffff
 
@@ -2213,7 +2213,7 @@ class z80:
         self.debug('LD %s,(IX+*)' % name)
 
     def _add_a_deref_ixy(self, is_ix):
-        offset = self.read_pc_inc()
+        offset = self.compl8(self.read_pc_inc())
         ixy = self.ix if is_ix else self.iy
         name = 'IX' if is_ix else 'IY'
         a = (ixy + offset) & 0xffff
