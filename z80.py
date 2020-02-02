@@ -1271,8 +1271,21 @@ class z80:
             else:
                 self.ui(ui)
 
+        elif major == 0x06:
+            if minor == 0x06:
+                self._ld_X_ixy_deref(instr, False)
+
+            elif minor == 0x0e:
+                self._ld_X_ixy_deref(instr, False)
+
+            else:
+                self.ui(ui)
+
         elif major == 0x07:
-            if minor == 0x0e:
+            if minor <= 0x05:
+                self._ld_ixy_X(minor, False)
+
+            elif minor == 0x0e:
                 self._ld_X_ixy_deref(instr, False)
 
             else:
@@ -1353,7 +1366,7 @@ class z80:
 
         elif major == 0x07:
             if minor <= 0x05:
-                self._ld_ix_X(minor)
+                self._ld_ixy_X(minor, True)
  
             elif minor == 0x06:
                 self._ld_X_ixy_deref(instr)
@@ -1960,14 +1973,16 @@ class z80:
 
         self.debug('OUTI')
 
-    def _ld_ix_X(self, which):
+    def _ld_ixy_X(self, which, is_ix):
         offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
 
         (val, src_name) = self.get_src(which)
         self.write_mem(a, val)
 
-        self.debug('LD (IX + *),%s' % src_name)
+        self.debug('LD (%s + *),%s' % (name, src_name))
 
     def _ldi(self):
         self.set_flag_n(False)
