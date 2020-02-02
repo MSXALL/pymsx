@@ -695,7 +695,7 @@ def test_nop():
     cpu.step()
     _test_registers_initial(False)
 
-def test_cp():
+def test_cp_cpir():
     # CP B
     reset_mem()
     cpu.reset()
@@ -751,6 +751,27 @@ def test_cp():
     my_assert(cpu.a == 0xf0)
     my_assert(cpu.f == (0xb2 & 0xd7))
     my_assert(cpu.pc == 3)
+
+    # CPIR
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xf0
+    cpu.f = 0
+    cpu.h = 0x10
+    cpu.l = 0x00
+    cpu.b = 0x20
+    cpu.c = 0x19
+    ram0[0x1010] = 0xf0
+    ram0[0] = 0xed
+    ram0[1] = 0xb1
+    cpu.step()
+    my_assert(cpu.a == 0xf0)
+    my_assert(cpu.h == 0x10)
+    my_assert(cpu.l == 0x11)
+    my_assert(cpu.b == 0x20)
+    my_assert(cpu.c == 0x08)
+    my_assert(cpu.f == (0x42 & 0xd7))
+    my_assert(cpu.pc == 2)
 
 def test_add():
     # ADD B
@@ -895,6 +916,21 @@ def test_and():
     my_assert(cpu.a == 0x71)
     my_assert(cpu.f == (0x14 & 0xd7))
     my_assert(cpu.pc == 2)
+
+    # AND A,(IX+*)
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0x01
+    cpu.ix = 0x1000
+    cpu.write_mem_16(0x1003, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0xdd
+    ram0[1] = 0xa6
+    ram0[2] = 3
+    cpu.step()
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.f == 0x54)
+    my_assert(cpu.a == 0x00)
 
 def test_xor():
     # XOR B
@@ -1766,7 +1802,7 @@ test_and()
 test_bit()
 test_call_ret()
 test_ccf()
-test_cp()
+test_cp_cpir()
 test_cpl()
 test_dec()
 test_di_ei()
