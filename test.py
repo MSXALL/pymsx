@@ -930,7 +930,7 @@ def test_add():
     my_assert(cpu.f == (0x00 & 0xd7))
     my_assert(cpu.pc == 1)
 
-    # ADD HL,BC [2]
+    # ADC HL,BC [2]
     reset_mem()
     cpu.reset()
     cpu.h = 0x0f
@@ -943,6 +943,22 @@ def test_add():
     cpu.step()
     my_assert(cpu.h == 0x8e)
     my_assert(cpu.l == 0x8f)
+    my_assert(cpu.f == (0x94 & 0xd7))
+    my_assert(cpu.pc == 2)
+
+    # ADC HL,BC [3]
+    reset_mem()
+    cpu.reset()
+    cpu.h = 0x0f
+    cpu.l = 0x0f
+    cpu.b = 0x7f
+    cpu.c = 0x7f
+    cpu.f = 0
+    ram0[0] = 0xed
+    ram0[1] = 0x4a
+    cpu.step()
+    my_assert(cpu.h == 0x8e)
+    my_assert(cpu.l == 0x8e)
     my_assert(cpu.f == (0x94 & 0xd7))
     my_assert(cpu.pc == 2)
 
