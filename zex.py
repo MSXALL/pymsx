@@ -7,12 +7,15 @@ from z80 import z80
 io = [ 0 ] * 256
 
 ram0 = [ 0 ] * 16384
+ram1 = [ 0 ] * 16384
+ram2 = [ 0 ] * 16384
+ram3 = [ 0 ] * 16384
 
 slots = [ ] # slots
 slots.append(( ram0, None, None, None ))
-slots.append(( None, None, None, None ))
-slots.append(( None, None, None, None ))
-slots.append(( None, None, None, None ))
+slots.append(( ram1, None, None, None ))
+slots.append(( ram2, None, None, None ))
+slots.append(( ram3, None, None, None ))
 
 pages = [ 0, 0, 0, 0]
 
