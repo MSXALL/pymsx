@@ -101,6 +101,7 @@ class disk:
                     self.tc = 1
 
                     self.flags = self.T1_INDEX
+
                     if self.regs[0x09] == 0:
                         self.flags |= self.T1_TRACK0;
 
@@ -141,6 +142,8 @@ class disk:
                     self.flags |= self.T2_BUSY | self.T2_DRQ
 
                 elif v == 13:
+                    self.bufp = 0
+
                     self.tc = 4
 
                 elif v == 14:
