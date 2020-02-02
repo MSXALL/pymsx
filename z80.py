@@ -415,6 +415,9 @@ class z80:
 
         return (high << 8) | low
 
+    def u16(self, v):
+        return (v >> 8, v & 0xff)
+
     def compl8(self, v):
         if v >= 128:
             return -(256 - v)
@@ -487,16 +490,13 @@ class z80:
         assert v >= 0 and v <= 65535
 
         if which == 0:
-            self.b = v >> 8
-            self.c = v & 0xff
+            (self.b, self.c) = self.u16(v)
             return 'BC'
         elif which == 1:
-            self.d = v >> 8
-            self.e = v & 0xff
+            (self.d, self.e) = self.u16(v)
             return 'DE'
         elif which == 2:
-            self.h = v >> 8
-            self.l = v & 0xff
+            (self.h, self.l) = self.u16(v)
             return 'HL'
         elif which == 3:
             self.sp = v
@@ -906,8 +906,7 @@ class z80:
 
         if which == 3:
             name = 'AF'
-            self.a = v >> 8
-            self.f = v & 0xff
+            (self.a, self.f) = self.u16(v)
 
         else:
             name = self.set_pair(which, v)
@@ -1069,8 +1068,7 @@ class z80:
 
         val &= 0xffff
 
-        self.h = val >> 8
-        self.l = val & 0xff
+        (self.h, self.l) = self.u16(val)
 
         self.debug('ADD HL, %s' % name)
 
@@ -1171,8 +1169,7 @@ class z80:
         if which == 2:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
-            self.h = v >> 8
-            self.l = v & 0xff
+            (self.h, self.l) = self.u16(v)
             self.debug('LD HL,(0x%04x)' % a)
 
         elif which == 3:
@@ -1231,6 +1228,12 @@ class z80:
             if minor == 0x01:  # LD IY,**
                 self._ld_iy()
 
+            elif minor == 0x0a:
+                a = self.read_pc_inc_16()
+                v = self.read_mem_16(a)
+                self.iy = v
+                self.debug('LD IY,(0x%04x)' % a)
+
             else:
                 self.ui(ui)
 
@@ -1287,8 +1290,19 @@ class z80:
             else:
                 self.ui(ui)
 
-        elif major == 0x07:
+        elif major == 0x04:
             if minor == 0x0e:
+                self._ld_c_ix_im()
+
+        elif major == 0x05:
+            if minor == 0x0e:
+                self._ld_e_ix_im()
+
+        elif major == 0x07:
+            if minor <= 0x05:
+                self._ld_ix_X(minor)
+
+            elif minor == 0x0e:
                 self._ld_ix_im()
 
             else:
@@ -1369,8 +1383,7 @@ class z80:
         elif instr == 0x5b:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
-            self.d = v >> 8
-            self.e = v & 255
+            (self.d, self.e) = self.u16(v)
             self.debug('LD DE,(0x%04x) [%04x]' % (a, v))
 
         elif instr == 0x73:
@@ -1385,6 +1398,9 @@ class z80:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
             self.sp = v
+
+        elif instr == 0xa0:
+            self._ldi()
 
         elif instr == 0xa3:
             self._outi()
@@ -1521,19 +1537,22 @@ class z80:
         while True:
             v = self.read_mem(hl)
             self.write_mem(de, v)
+
             hl += 1
+            hl &= 0xffff
+
             de += 1
+            de &= 0xffff
+
             bc -= 1
+            bc &= 0xffff
 
             if bc == 0:
                 break
 
-        self.b = bc >> 8
-        self.c = bc & 0xff
-        self.d = de >> 8
-        self.e = de & 0xff
-        self.h = hl >> 8
-        self.l = hl & 0xff
+        (self.b, self.c) = self.u16(bc)
+        (self.d, self.e) = self.u16(de)
+        (self.h, self.l) = self.u16(hl)
         
         self.debug('LDIR')
 
@@ -1615,8 +1634,8 @@ class z80:
         hl = self.m16(self.h, self.l)
         org_sp_deref = self.read_mem_16(self.sp)
         self.write_mem_16(self.sp, hl)
-        self.h = org_sp_deref >> 8
-        self.l = org_sp_deref & 0xff
+
+        (self.h, self.l) = self.u16(org_sp_deref)
 
         self.debug('EX (SP),HL')
 
@@ -1741,10 +1760,8 @@ class z80:
             if result == 0 or c == 0:
                 break
 
-        self.h = a >> 8
-        self.l = a & 255
-        self.b = c >> 8
-        self.c = c & 255
+        (self.h, self.l) = self.u16(a)
+        (self.b, self.c) = self.u16(c)
 
         self.set_flag_n(True)
         self.set_flag_pv(False)
@@ -1895,10 +1912,60 @@ class z80:
         a += 1
         a &= 0xffff
 
-        self.h = a >> 8
-        self.l = a & 0xff
+        (self.h, self.l) = self.u16(a)
 
         self.b -= 1
         self.b &= 0xff
 
         self.debug('OUTI')
+
+    def _ld_ix_X(self, which):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        (val, src_name) = self.get_src(which)
+        self.write_mem(a, val)
+
+        self.debug('LD (IX + *),%s' % src_name)
+
+    def _ld_c_ix_im(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        self.c = self.read_mem(a)
+
+        self.debug('LD C,(IX+*)')
+
+    def _ld_e_ix_im(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        self.e = self.read_mem(a)
+
+        self.debug('LD E,(IX+*)')
+
+    def _ldi(self):
+        self.set_flag_n(False)
+        self.set_flag_pv(False)
+        self.set_flag_h(False)
+
+        bc = self.m16(self.b, self.c)
+        de = self.m16(self.d, self.e)
+        hl = self.m16(self.h, self.l)
+
+        v = self.read_mem(hl)
+        self.write_mem(de, v)
+        hl += 1
+        hl &= 0xffff
+
+        de += 1
+        de &= 0xffff
+
+        bc -= 1
+        bc &= 0xffff
+
+        (self.b, self.c) = self.u16(bc)
+        (self.d, self.e) = self.u16(de)
+        (self.h, self.l) = self.u16(hl)
+
+        self.debug('LDI')

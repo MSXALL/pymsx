@@ -32,9 +32,9 @@ disk_rom_file = 'FSFD1.ROM'
 disk_obj = disk(disk_rom_file, debug) if disk_rom_file else None
 disk_sig = disk_obj.get_signature() if disk_obj else None
 
-gen_rom_file = 'STCMSX1P.ROM'
-gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
-gen_sig = gen_obj.get_signature() if gen_obj else None
+#gen_rom_file = 'STCMSX1P.ROM'
+#gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
+#gen_sig = gen_obj.get_signature() if gen_obj else None
 
 subpage = 0x00
 
