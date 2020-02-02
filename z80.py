@@ -1377,7 +1377,7 @@ class z80:
                 self._ld_X_ixy_deref(instr)
 
             elif minor == 0x0e:
-                self._ld_ix_im()
+                self._ld_X_ixy_deref(instr, True)
 
             else:
                 self.ui(ui)
@@ -1867,15 +1867,6 @@ class z80:
         self.iy = v
 
         self.debug('LD iy,**')
-
-    def _ld_ix_im(self):
-        offset = self.read_pc_inc()
-
-        a = (self.ix + offset) & 0xffff
-
-        self.a = self.read_mem(a)
-
-        self.debug('LD A,(IX + *)')
 
     def _inc_ix(self):
         self.ix = (self.ix + 1) & 0xffff
