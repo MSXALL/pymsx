@@ -24,11 +24,11 @@ def debug(x):
     dk.debug('%s <%02x/%02x>' % (x, io[0xa8], subpage))
     print('%s <%02x/%02x>' % (x, io[0xa8], subpage), file=sys.stderr)
 
-scc_rom_file = None # 'md1.rom'
+scc_rom_file = 'md1.rom'
 scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
 scc_sig = scc_obj.get_signature() if scc_obj else None
 
-disk_rom_file = 'FSFD1.ROM'
+disk_rom_file = None # 'FSFD1.ROM'
 disk_obj = disk(disk_rom_file, debug) if disk_rom_file else None
 disk_sig = disk_obj.get_signature() if disk_obj else None
 

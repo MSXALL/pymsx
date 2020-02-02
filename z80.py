@@ -40,10 +40,19 @@ class z80:
     def out(self, a, v):
         self.write_io(a, v)
 
+    def incp16(self, p):
+        p += 1
+        return p & 0xffff
+
+    def decp16(self, p):
+        p -= 1
+        return p & 0xffff
+
     def read_pc_inc(self):
         v = self.read_mem(self.pc)
-        self.pc += 1
-        self.pc &= 0xffff
+
+        self.pc = self.incp16(self.pc)
+
         return v
 
     def read_pc_inc_16(self):
@@ -270,7 +279,7 @@ class z80:
                     self._call_flag(not self.get_flag_pv(), 'PO')
 
                 elif major == 0x0f:
-                    self._call_flag(self.get_flag_pe(), 'P')
+                    self._call_flag(self.get_flag_pv(), 'P')
 
                 else:
                     self.ui(instr)
@@ -280,7 +289,7 @@ class z80:
 
             elif minor == 0x06:
                 if major == 0x0c:  # ADD A, *
-                    self._add_a_val()
+                    self._add_a_val(False)
 
                 elif major == 0x0d:  # SUB *
                     self._sub_val()
@@ -391,7 +400,10 @@ class z80:
                     self.ui(instr)
 
             elif minor == 0x0e:
-                if major == 0x0e:
+                if major == 0x0c:
+                    self._add_a_val(True)
+
+                elif major == 0x0e:
                     self._xor_mem()
 
                 elif major == 0x0f:
@@ -416,6 +428,8 @@ class z80:
         return (high << 8) | low
 
     def u16(self, v):
+        assert v >= 0 and v <= 65535
+
         return (v >> 8, v & 0xff)
 
     def compl8(self, v):
@@ -1291,12 +1305,34 @@ class z80:
                 self.ui(ui)
 
         elif major == 0x04:
-            if minor == 0x0e:
+            if minor == 0x06:
+                self._add_b_ix_deref()
+
+            elif minor == 0x0e:
                 self._ld_c_ix_im()
 
+            else:
+                self.ui(ui)
+
         elif major == 0x05:
-            if minor == 0x0e:
+            if minor == 0x06:
+                self._add_d_ix_deref()
+
+            elif minor == 0x0e:
                 self._ld_e_ix_im()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x06:
+            if minor == 0x06:
+                self._add_h_ix_deref()
+
+            elif minor == 0x0e:
+                self._ld_l_ix_im()
+
+            else:
+                self.ui(ui)
 
         elif major == 0x07:
             if minor <= 0x05:
@@ -1304,6 +1340,27 @@ class z80:
 
             elif minor == 0x0e:
                 self._ld_ix_im()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x08:
+            if minor == 0x06:
+                self._add_a_ix_deref()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x0a:
+            if minor == 0x06:
+                self._and_a_ix_deref()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x0b:
+            if minor == 0x0e:
+                self._cp_im_ix()
 
             else:
                 self.ui(ui)
@@ -1375,6 +1432,11 @@ class z80:
         elif instr == 0x71 or instr == 0x61 or instr == 0x51 or instr == 0x41:
             self._out_c_low(major - 4)
 
+        elif instr == 0x43:
+            a = self.read_pc_inc_16()
+            self.write_mem_16(a, self.m16(self.b, self.c))
+            self.debug('LD (0x%04x), BC' % a)
+
         elif instr == 0x53:
             a = self.read_pc_inc_16()
             self.write_mem_16(a, self.m16(self.d, self.h))
@@ -1405,6 +1467,9 @@ class z80:
         elif instr == 0xa3:
             self._outi()
 
+        elif instr == 0xb1:
+            self._cpir()
+
         elif instr == 0xb9:
             self._cpdr()
 
@@ -1423,10 +1488,13 @@ class z80:
         self.sp = self.m16(self.h, self.l)
         self.debug('LD SP, HL [%04x]' % self.sp)
 
-    def _add_a_val(self):
+    def _add_a_val(self, use_c):
         v = self.read_pc_inc()
         old_val = self.a
         self.a += v
+
+        if use_c:
+            self.a += self.get_flag_c()
 
         self.set_add_flags(old_val, v, self.a)
 
@@ -1744,32 +1812,6 @@ class z80:
 
         self.debug('NEG')
 
-    def _cpdr(self):
-        a = self.m16(self.h, self.l)
-        c = self.m16(self.b, self.c)
-
-        result = 0
-
-        while True:
-            mem = self.read_mem(a)
-            a -= 1
-            c -= 1
-
-            result = self.a - mem
-
-            if result == 0 or c == 0:
-                break
-
-        (self.h, self.l) = self.u16(a)
-        (self.b, self.c) = self.u16(c)
-
-        self.set_flag_n(True)
-        self.set_flag_pv(False)
-        self.set_flag_s(result < 0)
-        self.set_flag_z(result == 0)
-
-        self.debug('CPDR')
-
     def _ld_ix(self):
         v = self.read_pc_inc_16()
         self.ix = v
@@ -1944,6 +1986,14 @@ class z80:
 
         self.debug('LD E,(IX+*)')
 
+    def _ld_l_ix_im(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        self.l = self.read_mem(a)
+
+        self.debug('LD L,(IX+*)')
+
     def _ldi(self):
         self.set_flag_n(False)
         self.set_flag_pv(False)
@@ -1969,3 +2019,138 @@ class z80:
         (self.h, self.l) = self.u16(hl)
 
         self.debug('LDI')
+
+    def _cpdr(self):
+        a = self.m16(self.h, self.l)
+        c = self.m16(self.b, self.c)
+
+        result = 0
+
+        while True:
+            mem = self.read_mem(a)
+
+            a = self.decp16(a)
+            c = self.decp16(c)
+
+            result = self.a - mem
+
+            if result == 0 or c == 0:
+                break
+
+        (self.h, self.l) = self.u16(a)
+        (self.b, self.c) = self.u16(c)
+
+        self.set_flag_n(True)
+        self.set_flag_pv(False)
+        self.set_flag_s(result < 0)
+        self.set_flag_z(result == 0)
+
+        self.debug('CPDR')
+
+    def _cpir(self):
+        a = self.m16(self.h, self.l)
+        c = self.m16(self.b, self.c)
+
+        result = 0
+
+        while True:
+            mem = self.read_mem(a)
+
+            a = self.incp16(a)
+            c = self.decp16(c)
+
+            result = self.a - mem
+
+            if result == 0 or c == 0:
+                break
+
+        (self.h, self.l) = self.u16(a)
+        (self.b, self.c) = self.u16(c)
+
+        self.set_flag_n(True)
+        self.set_flag_pv(False)
+        self.set_flag_s(result < 0)
+        self.set_flag_z(result == 0)
+
+        self.debug('CPIR')
+
+    def _cp_im_ix(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        v  = self.read_mem(a)
+
+        temp = self.a - v
+        self.set_sub_flags(self.a, v, temp)
+
+        self.debug('CP (IX + *)')
+
+    def _and_a_ix_deref(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        v = self.read_mem(a)
+ 
+        result = self.a & v
+
+        self.set_add_flags(self.a, v, result)
+
+        self.a = result & 0xff
+
+        self.debug('AND (IX+*)')
+
+    def _add_a_ix_deref(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        v = self.read_mem(a)
+ 
+        result = self.a + v
+
+        self.set_add_flags(self.a, v, result)
+
+        self.a = result & 0xff
+
+        self.debug('ADD A,(IX+*)')
+
+    def _add_b_ix_deref(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        v = self.read_mem(a)
+ 
+        result = self.b + v
+
+        self.set_add_flags(self.b, v, result)
+
+        self.b = result & 0xff
+
+        self.debug('ADD B,(IX+*)')
+
+    def _add_d_ix_deref(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        v = self.read_mem(a)
+ 
+        result = self.d + v
+
+        self.set_add_flags(self.d, v, result)
+
+        self.d = result & 0xff
+
+        self.debug('ADD D,(IX+*)')
+
+    def _add_h_ix_deref(self):
+        offset = self.read_pc_inc()
+        a = (self.ix + offset) & 0xffff
+
+        v = self.read_mem(a)
+ 
+        result = self.h + v
+
+        self.set_add_flags(self.h, v, result)
+
+        self.h = result & 0xff
+
+        self.debug('ADD H,(IX+*)')
