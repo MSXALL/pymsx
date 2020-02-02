@@ -153,7 +153,7 @@ class z80:
                     self.ui(instr)
 
             elif minor == 0x09:
-                self._add_pair(major)
+                self._add_pair(major, False)
 
             elif minor == 0x0a:
                 if major == 0x00 or major == 0x01:
@@ -1084,11 +1084,14 @@ class z80:
 
         self.debug('INC %s' % name)
 
-    def _add_pair(self, which):
+    def _add_pair(self, which, is_adc):
         org_val = val = self.m16(self.h, self.l)
 
         (v, name) = self.get_pair(which)
         val += v
+
+        if is_adc:
+            val += self.get_flag_c()
 
         self.set_flag_h((((org_val & 0x0fff) + (v & 0x0fff)) & 0x1000) == 0x1000)
         self.set_flag_c((val & 0x10000) == 0x10000)
@@ -1486,6 +1489,9 @@ class z80:
 
         elif minor == 8 and major >= 4 and major <= 7:
             self._in_ed_high(major - 4)
+
+        elif minor == 0x0a and major >= 4 and major <= 7:
+            self._add_pair(major - 4, True)
 
         elif instr == 0x71 or instr == 0x61 or instr == 0x51 or instr == 0x41:
             self._out_c_low(major - 4)
