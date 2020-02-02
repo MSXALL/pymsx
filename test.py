@@ -1404,6 +1404,38 @@ def test_sub():
     my_assert(cpu.l == 0x07)
     my_assert(cpu.f == (0x03 & 0xd7))
 
+    # SBC HL,BC [1]
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x7f
+    cpu.c = 0x7f
+    cpu.h = 0x0f
+    cpu.l = 0x0f
+    cpu.f = 1
+    ram0[0] = 0xed
+    ram0[1] = 0x42
+    cpu.step()
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.h == 0x8f)
+    my_assert(cpu.l == 0x8f)
+    my_assert(cpu.f == (0x93 & 0xd7))
+
+    # SBC HL,BC [2]
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x7f
+    cpu.c = 0x7f
+    cpu.h = 0x0f
+    cpu.l = 0x0f
+    cpu.f = 0
+    ram0[0] = 0xed
+    ram0[1] = 0x42
+    cpu.step()
+    my_assert(cpu.pc == 2)
+    my_assert(cpu.h == 0x8f)
+    my_assert(cpu.l == 0x90)
+    my_assert(cpu.f == (0x93 & 0xd7))
+
 def test_inc():
     # INC b
     reset_mem()
