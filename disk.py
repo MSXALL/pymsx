@@ -130,6 +130,7 @@ class disk:
                     self.need_flush = False
 
                     side = 1 if (self.regs[0x0c] & 10) == 10 else 0
+                    self.debug('Read sector %d:%d:%d' % (side, self.regs[0x09], self.regs[0x0a]))
                     self.fh.seek(self.file_offset(side, self.regs[0x09], self.regs[0x0a]))
                     for i in range(0, 512):
                         self.buffer[i] = struct.unpack('<B', self.fh.read(1))[0]
@@ -159,10 +160,14 @@ class disk:
                 elif command == 14:
                     self.tc = 3
 
+                    self.debug('Read track %d' % self.regs[0x09])
+
                     self.flags |= self.T2_BUSY | self.T2_DRQ
 
                 elif command == 15:
                     self.tc = 3
+
+                    self.debug('Write track %d' % self.regs[0x09])
 
                     self.flags |= self.T2_BUSY | self.T2_DRQ
 
@@ -176,6 +181,8 @@ class disk:
                     self.bufp += 1
 
                     if self.bufp == 512 and self.need_flush:
+                        self.debug('Write sector %d:%d:%d' % (side, self.regs[0x09], self.regs[0x0a]))
+
                         side = 1 if (self.regs[0x0c] & 0x10) == 0x10 else 0
                         self.fh.seek(self.file_offset(side, self.regs[0x09], self.regs[0x0a]))
                         self.fh.write(bytes(self.buffer))
@@ -199,7 +206,7 @@ class disk:
         if offset >= 0x3ff0: # HW registers
             reg = offset - 0x3ff0
 
-            self.debug('Read DISK register %02x' % reg)
+            # self.debug('Read DISK register %02x' % reg)
 
             if reg == 0x08:
                 if self.tc == 1 or self.tc == 4:
