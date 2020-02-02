@@ -1251,12 +1251,36 @@ class z80:
             else:
                 self.ui(ui)
 
-        elif major == 0x05:
+        elif major == 0x04:
             if minor == 0x06:
-                self._ld_d_iy()
+                self._ld_X_ixy_deref(instr, False)
 
             elif minor == 0x0e:
-                self._ld_e_iy()
+                self._ld_X_ixy_deref(instr, False)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x05:
+            if minor == 0x06:
+                self._ld_X_ixy_deref(instr, False)
+
+            elif minor == 0x0e:
+                self._ld_X_ixy_deref(instr, False)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x07:
+            if minor == 0x0e:
+                self._ld_X_ixy_deref(instr, False)
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x08:
+            if minor == 0x06:
+                self._add_a_deref_ixy(False)
 
             else:
                 self.ui(ui)
@@ -1270,13 +1294,6 @@ class z80:
 
             elif minor == 0x09:  # JP (IY)
                 self._jp_ref_iy()
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x07:
-            if minor == 0x0e:  # LD A,(IY + *)
-                self._ld_a_iy()
 
             else:
                 self.ui(ui)
@@ -1306,30 +1323,30 @@ class z80:
 
         elif major == 0x04:
             if minor == 0x06:
-                self._ld_X_ix_deref(instr)
+                self._ld_X_ixy_deref(instr, True)
 
             elif minor == 0x0e:
-                self._ld_X_ix_deref(instr)
+                self._ld_X_ixy_deref(instr, True)
 
             else:
                 self.ui(ui)
 
         elif major == 0x05:
             if minor == 0x06:
-                self._ld_X_ix_deref(instr)
+                self._ld_X_ixy_deref(instr, True)
 
             elif minor == 0x0e:
-                self._ld_X_ix_deref(instr)
+                self._ld_X_ixy_deref(instr, True)
 
             else:
                 self.ui(ui)
 
         elif major == 0x06:
             if minor == 0x06:
-                self._ld_X_ix_deref(instr)
+                self._ld_X_ixy_deref(instr, True)
 
             elif minor == 0x0e:
-                self._ld_X_ix_deref(instr)
+                self._ld_X_ixy_deref(instr, True)
 
             else:
                 self.ui(ui)
@@ -1339,10 +1356,17 @@ class z80:
                 self._ld_ix_X(minor)
  
             elif minor == 0x06:
-                self._ld_X_ix_deref(instr)
+                self._ld_X_ixy_deref(instr)
 
             elif minor == 0x0e:
                 self._ld_ix_im()
+
+            else:
+                self.ui(ui)
+
+        elif major == 0x08:
+            if minor == 0x06:
+                self._add_a_deref_ixy(True)
 
             else:
                 self.ui(ui)
@@ -1879,33 +1903,6 @@ class z80:
 
         self.debug('JP (IY)')
 
-    def _ld_a_iy(self):
-        offset = self.read_pc_inc()
-
-        a = (self.iy + offset) & 0xffff
-
-        self.a = self.read_mem(a)
-
-        self.debug('LD A,(IY + *)')
-
-    def _ld_d_iy(self):
-        offset = self.read_pc_inc()
-
-        a = (self.iy + offset) & 0xffff
-
-        self.d = self.read_mem(a)
-
-        self.debug('LD D,(IY + *)')
-
-    def _ld_e_iy(self):
-        offset = self.read_pc_inc()
-
-        a = (self.iy + offset) & 0xffff
-
-        self.e = self.read_mem(a)
-
-        self.debug('LD E,(IY + *)')
-
     def _in_ed_low(self, which):
         v = self.in_(self.c)
 
@@ -2061,19 +2058,16 @@ class z80:
         offset = self.read_pc_inc()
         a = (self.ix + offset) & 0xffff
 
-        v = self.read_mem(a)
- 
-        result = self.a & v
+        self.a &= self.read_mem(a)
 
-        self.set_add_flags(self.a, v, result)
-
-        self.a = result & 0xff
+        self.and_flags()
 
         self.debug('AND (IX+*)')
 
-    def _ld_X_ix_deref(self, which):
+    def _ld_X_ixy_deref(self, which, is_ix):
         offset = self.read_pc_inc()
-        a = (self.ix + offset) & 0xffff
+        ixy = self.ix if is_ix else self.iy
+        a = (ixy + offset) & 0xffff
 
         v = self.read_mem(a)
  
@@ -2101,8 +2095,27 @@ class z80:
             self.l = v
             name = 'L'
  
-        elif which == 0x76:
+        elif which == 0x7e:
             self.a = v
             name = 'A'
 
+        else:
+            assert False
+
         self.debug('LD %s,(IX+*)' % name)
+
+    def _add_a_deref_ixy(self, is_ix):
+        offset = self.read_pc_inc()
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        old_val = self.a
+
+        v = self.read_mem(a)
+
+        self.a += v
+        self.set_add_flags(old_val, v, self.a)
+        self.a &= 0xff
+
+        self.debug('ADD A,(%s+*)' % name)
+
