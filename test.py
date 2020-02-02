@@ -1897,6 +1897,19 @@ def test_ldi_r():
     my_assert(cpu.get_flag_s() == True)
     assert(ram0[0x1000] == 123)
 
+def test_srl():
+    # SRL B
+    reset_mem()
+    cpu.reset()
+    cpu.b = 0x21
+    cpu.f = 0
+    ram0[0] = 0xcb
+    ram0[1] = 0x38
+    cpu.step()
+    my_assert(cpu.b == 0x10)
+    my_assert(cpu.f == 0x01)
+    my_assert(cpu.pc == 2)
+
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
 test__flags()
@@ -1928,6 +1941,7 @@ test_rrca()
 test_rst()
 test_set()
 test_sla()
+test_srl()
 test_sub()
 test_xor()
 

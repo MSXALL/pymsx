@@ -1794,11 +1794,12 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(False)
         self.set_flag_c((val & 1) == 1)
-        self.set_flag_pv(self.parity(val))
         self.set_flag_z(val == 0)
         self.set_flag_s(val >= 128)
 
         val >>= 1
+
+        self.set_flag_pv(self.parity(val))
 
         dst = src
         self.set_dst(dst, val)
