@@ -1117,14 +1117,6 @@ class z80:
         self.set_flag_c((after & 0x10000) == 0x10000)
         self.set_flag_n(False);
 
-        ### strange: http://clrhome.org/table/ says sign & p/v are not affected
-        before_sign = before & 0x8000;
-        value_sign = value & 0x8000;
-        after_sign = after & 0x8000;
-        self.set_flag_pv(before_sign == value_sign and after_sign != before_sign)
-        self.set_flag_s((after & 0x8000) == 0x8000)
-        ###
-
         after &= 0xffff
 
         (self.h, self.l) = self.u16(after)

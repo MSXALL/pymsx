@@ -943,7 +943,7 @@ def test_add():
     cpu.step()
     my_assert(cpu.h == 0x8e)
     my_assert(cpu.l == 0x8f)
-    my_assert(cpu.f == (0x94 & 0xd7))
+    my_assert(cpu.f == (0x10 & 0xd7))
     my_assert(cpu.pc == 2)
 
     # ADC HL,BC [3]
