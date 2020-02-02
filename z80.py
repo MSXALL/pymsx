@@ -292,7 +292,7 @@ class z80:
                     self._add_a_val(False)
 
                 elif major == 0x0d:  # SUB *
-                    self._sub_val()
+                    self._sub_val(False)
 
                 elif major == 0x0e:  # AND *
                     self._and_val()
@@ -402,6 +402,9 @@ class z80:
             elif minor == 0x0e:
                 if major == 0x0c:
                     self._add_a_val(True)
+
+                elif major == 0x0d:
+                    self._sub_val(True)
 
                 elif major == 0x0e:
                     self._xor_mem()
@@ -999,8 +1002,10 @@ class z80:
 
         self.debug('%s %s [%02x]' % ('SBC' if c else 'SUB', name, val))
 
-    def _sub_val(self):
+    def _sub_val(self, use_c):
         v = self.read_pc_inc()
+        if use_c:
+            v += self.get_flag_c()
         self.a = self.sub(v)
         self.debug('SUB 0x%02x' % v)
 

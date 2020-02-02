@@ -1076,6 +1076,18 @@ def test_sub():
     my_assert(cpu.f == (0xb2 & 0xd7))
     my_assert(cpu.pc == 2)
 
+    # SBC *
+    reset_mem()
+    cpu.reset()
+    cpu.a = 0xf0
+    cpu.f = 1
+    ram0[0] = 0xd6
+    ram0[1] = 0x21
+    cpu.step()
+    my_assert(cpu.a == 0xcf)
+    my_assert(cpu.f == (0x92 & 0xd7))
+    my_assert(cpu.pc == 2)
+
     # SBC HL,BC
     reset_mem()
     cpu.reset()
