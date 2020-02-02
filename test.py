@@ -308,6 +308,30 @@ def test_jp():
     my_assert(cpu.pc == 0x2210)
     my_assert(cpu.sp == 0xffff)
 
+    # JP (IX)
+    reset_mem()
+    cpu.reset()
+    cpu.f = 0
+    cpu.ix = 0x1000
+    ram0[0] = 0xdd
+    ram0[1] = 0xe9
+    cpu.step()
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 0x1000)
+    my_assert(cpu.sp == 0xffff)
+
+    # JP (IX)
+    reset_mem()
+    cpu.reset()
+    cpu.f = 0
+    cpu.iy = 0x2000
+    ram0[0] = 0xfd
+    ram0[1] = 0xe9
+    cpu.step()
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 0x2000)
+    my_assert(cpu.sp == 0xffff)
+
 def test_call_ret():
     # CALL **
     reset_mem()
