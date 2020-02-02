@@ -1477,7 +1477,7 @@ class z80:
             if minor == 0x04:
                 org = self.a
                 v = self.ix >> 8
-                self.a += val
+                self.a += v
                 self.set_add_flags(org, v, self.a)
                 self.a &= 0xff
                 self.debug('ADD A,IXH')
