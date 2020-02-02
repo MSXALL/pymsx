@@ -1369,9 +1369,9 @@ class z80:
         elif instr == 0x5b:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
-            d = v >> 8
-            e = v & 255
-            self.debug('LD DE,(0x%04x)' % a)
+            self.d = v >> 8
+            self.e = v & 255
+            self.debug('LD DE,(0x%04x) [%04x]' % (a, v))
 
         elif instr == 0x73:
             a = self.read_pc_inc_16()

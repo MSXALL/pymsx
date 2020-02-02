@@ -210,6 +210,23 @@ def test_ld():
     my_assert(cpu.pc == 3)
     my_assert(cpu.read_mem(0x1000) == 213)
 
+    # LD DE,(**)
+    reset_mem()
+    cpu.reset()
+    cpu.d = 0x77
+    cpu.e = 0x22
+    cpu.write_mem_16(0x1000, 0x9988)
+    cpu.f = 0
+    ram0[0] = 0xed
+    ram0[1] = 0x5b
+    ram0[2] = 0x00
+    ram0[3] = 0x10
+    cpu.step()
+    my_assert(cpu.pc == 4)
+    my_assert(cpu.f == 0)
+    my_assert(cpu.d == 0x99)
+    my_assert(cpu.e == 0x88)
+
 def test_jp():
     # JP **
     reset_mem()
