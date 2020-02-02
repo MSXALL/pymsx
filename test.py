@@ -309,6 +309,38 @@ def test_call_ret():
     my_assert(cpu.f == 0)
     my_assert(cpu.pc == 3)
     my_assert(cpu.sp == 0x3fff)
+
+    # CALL NC,** taken
+    reset_mem()
+    cpu.reset()
+    cpu.f = 0
+    cpu.sp = 0x3fff
+    ram0[0] = 0xd4
+    ram0[1] = 0x10
+    ram0[2] = 0x22
+    ram0[0x2210] = 0xc9
+    cpu.step()
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 0x2210)
+    my_assert(cpu.sp == 0x3ffd)
+    cpu.step()
+    my_assert(cpu.f == 0)
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.sp == 0x3fff)
+
+    # CALL NC,** not taken
+    reset_mem()
+    cpu.reset()
+    cpu.f = 1
+    cpu.sp = 0x3fff
+    ram0[0] = 0xd4
+    ram0[1] = 0x10
+    ram0[2] = 0x22
+    ram0[0x2210] = 0xc9
+    cpu.step()
+    my_assert(cpu.f == 1)
+    my_assert(cpu.pc == 3)
+    my_assert(cpu.sp == 0x3fff)
     
     # RET C taken
     reset_mem()
