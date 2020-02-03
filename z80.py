@@ -1361,7 +1361,7 @@ class z80:
         self.ixy_jumps[0x73] = self._ld_ixy_X
         self.ixy_jumps[0x74] = self._ld_ixy_X
         self.ixy_jumps[0x75] = self._ld_ixy_X
-        self.ixy_jumps[0x76] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x77] = self._ld_ixy_X
         self.ixy_jumps[0x7e] = self._ld_X_ixy_deref
         self.ixy_jumps[0x84] = self._add_a_ixy_h
         self.ixy_jumps[0x85] = self._add_a_ixy_l

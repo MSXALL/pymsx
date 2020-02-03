@@ -173,6 +173,6 @@ except KeyboardInterrupt:
 
 dk.stop()
 
-for i in range(0, 256):
-    if cpu.counts[i]:
-        print('instr %02x: %d' % (i, cpu.counts[i]), file=sys.stderr)
+#for i in range(0, 256):
+#    if cpu.counts[i]:
+#        print('instr %02x: %d' % (i, cpu.counts[i]), file=sys.stderr)
