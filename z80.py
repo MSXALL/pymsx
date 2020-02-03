@@ -1501,7 +1501,7 @@ class z80:
             elif minor == 0x05:
                 org = self.a
                 v = self.ix & 255
-                self.a += val
+                self.a += v
                 self.set_add_flags(org, v, self.a)
                 self.a &= 0xff
                 self.debug('ADD A,IXL')
