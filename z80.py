@@ -14,8 +14,11 @@ class z80:
         self.init_xy()
         self.init_bits()
         self.init_parity()
+        self.init_ext()
 
         self.reset()
+
+        self.counts = [ 0 ] * 256
 
     def debug(self, x):
         self.debug_out(x)
@@ -77,6 +80,8 @@ class z80:
         old_pc = self.pc
         instr = self.read_pc_inc()
         #print('%04x %02x  ' % (old_pc, instr), end='')
+
+        self.counts[instr] += 1
 
         self.cycles += 1 # FIXME
 
@@ -160,7 +165,7 @@ class z80:
                     self.ui(instr)
 
             elif minor == 0x09:
-                self._add_pair(major, False)
+                self._add_pair(instr)
 
             elif minor == 0x0a:
                 if major == 0x00 or major == 0x01:
@@ -1135,7 +1140,13 @@ class z80:
             self.iy = val
             self.debug('ADD IY, %s' % name)
 
-    def _add_pair(self, which, is_adc):
+    def _add_pair(self, instr):
+        self.add_pair(instr >> 4, False)
+
+    def _adc_pair(self, instr):
+        self.add_pair((instr >> 4) - 4, True)
+
+    def add_pair(self, which, is_adc):
         before = self.m16(self.h, self.l)
 
         (value, name) = self.get_pair(which)
@@ -1394,88 +1405,75 @@ class z80:
         self.ui(ui)
 
     def _ed(self):
-        instr = self.read_pc_inc()
+        try:
+            instr = self.read_pc_inc()
+            self.debug('EXT: %02x' % instr)
+            self.ed_jumps[instr](instr)
 
-        ui = (0xed << 8) | instr
+        except TypeError as te:
+            self.debug('TypeError EXT(%02x): %s' % (instr, te))
+            assert False
 
-        major = instr >> 4
-        minor = instr & 15
-        minor1 = instr & 8
-        minor2 = instr & 7
+    def _ld_mem_pair(self, instr):
+        which = (instr >> 4) -4
+        a = self.read_pc_inc_16()
+        (v, name) = self.get_pair(which)
+        self.write_mem_16(a, v)
+        self.debug('LD (0x%04x), %s' % (a, name))
 
-        if instr == 0xb0:
-            self._ldir()
+    def _ld_pair_mem(self, instr):
+        a = self.read_pc_inc_16()
+        v = self.read_mem_16(a)
+        name = self.set_pair((instr >> 4) - 4, v)
+        self.debug('LD %s,(0x%04x) [%04x]' % (name, a, v))
 
-        elif minor == 0 and major >= 4 and major <= 6:
-            self._in_ed_low(major - 4)
+    def init_ext(self):
+        self.ed_jumps = [ None ] * 256
 
-        elif minor == 2 and major >= 4 and major <= 7:
-            self._sbc_pair(major - 4)
-
-        elif minor == 5 and major >= 4 and major <= 7:
-            self._neg()
-
-        elif minor == 8 and major >= 4 and major <= 7:
-            self._in_ed_high(major - 4)
-
-        elif minor == 0x0a and major >= 4 and major <= 7:
-            self._add_pair(major - 4, True)
-
-        elif instr == 0x71 or instr == 0x61 or instr == 0x51 or instr == 0x41:
-            self._out_c_low(major - 4)
-
-        elif instr == 0x43:
-            a = self.read_pc_inc_16()
-            self.write_mem_16(a, self.m16(self.b, self.c))
-            self.debug('LD (0x%04x), BC' % a)
-
-        elif instr == 0x4b:
-            a = self.read_pc_inc_16()
-            v = self.read_mem_16(a)
-            (self.b, self.c) = self.u16(v)
-            self.debug('LD BC,(0x%04x) [%04x]' % (a, v))
-
-        elif instr == 0x53:
-            a = self.read_pc_inc_16()
-            self.write_mem_16(a, self.m16(self.d, self.h))
-            self.debug('LD (0x%04x), DE' % a)
-
-        elif instr == 0x5b:
-            a = self.read_pc_inc_16()
-            v = self.read_mem_16(a)
-            (self.d, self.e) = self.u16(v)
-            self.debug('LD DE,(0x%04x) [%04x]' % (a, v))
-
-        elif instr == 0x73:
-            a = self.read_pc_inc_16()
-            self.write_mem_16(a, self.sp)
-            self.debug('LD (0x%04x), SP' % a)
-
-        elif instr == 0x79 or instr == 0x69 or instr == 0x59 or instr == 0x49:
-            self._out_c_high(major - 4)
-
-        elif instr == 0x7b:
-            a = self.read_pc_inc_16()
-            v = self.read_mem_16(a)
-            self.sp = v
-
-        elif instr == 0xa0:
-            self._ldi()
-
-        elif instr == 0xa3:
-            self._outi()
-
-        elif instr == 0xb1:
-            self._cpir()
-
-        elif instr == 0xb9:
-            self._cpdr()
-
-        elif minor == 6:
-            self._im(major & 1)
-
-        else:
-            self.ui(ui)
+        self.ed_jumps[0x40] = self._in_ed_low
+        self.ed_jumps[0x41] = self._out_c_low
+        self.ed_jumps[0x42] = self._sbc_pair
+        self.ed_jumps[0x43] = self._ld_mem_pair
+        self.ed_jumps[0x45] = self._neg
+        self.ed_jumps[0x46] = self._im
+        self.ed_jumps[0x48] = self._in_ed_high
+        self.ed_jumps[0x49] = self._out_c_high
+        self.ed_jumps[0x4a] = self._adc_pair
+        self.ed_jumps[0x4b] = self._ld_pair_mem
+        self.ed_jumps[0x50] = self._in_ed_low
+        self.ed_jumps[0x51] = self._out_c_low
+        self.ed_jumps[0x52] = self._sbc_pair
+        self.ed_jumps[0x53] = self._ld_mem_pair
+        self.ed_jumps[0x55] = self._neg
+        self.ed_jumps[0x56] = self._im
+        self.ed_jumps[0x58] = self._in_ed_high
+        self.ed_jumps[0x59] = self._out_c_high
+        self.ed_jumps[0x5a] = self._adc_pair
+        self.ed_jumps[0x5b] = self._ld_pair_mem
+        self.ed_jumps[0x60] = self._in_ed_low
+        self.ed_jumps[0x61] = self._out_c_low
+        self.ed_jumps[0x62] = self._sbc_pair
+        self.ed_jumps[0x63] = self._ld_mem_pair
+        self.ed_jumps[0x65] = self._neg
+        self.ed_jumps[0x66] = self._im
+        self.ed_jumps[0x68] = self._in_ed_high
+        self.ed_jumps[0x69] = self._out_c_high
+        self.ed_jumps[0x6a] = self._adc_pair
+        self.ed_jumps[0x6b] = self._ld_pair_mem
+        self.ed_jumps[0x71] = self._out_c_low
+        self.ed_jumps[0x72] = self._sbc_pair
+        self.ed_jumps[0x73] = self._ld_mem_pair
+        self.ed_jumps[0x75] = self._neg
+        self.ed_jumps[0x76] = self._im
+        self.ed_jumps[0x78] = self._in_ed_high
+        self.ed_jumps[0x79] = self._out_c_high
+        self.ed_jumps[0x7a] = self._adc_pair
+        self.ed_jumps[0x7b] = self._ld_pair_mem
+        self.ed_jumps[0xa0] = self._ldi
+        self.ed_jumps[0xa3] = self._outi
+        self.ed_jumps[0xb0] = self._ldir
+        self.ed_jumps[0xb1] = self._cpir
+        self.ed_jumps[0xb9] = self._cpdr
 
     def _in(self):
         a = self.read_pc_inc()
@@ -1592,7 +1590,7 @@ class z80:
 
         self.debug('CP 0x%02x' % val)
 
-    def _ldir(self):
+    def _ldir(self, instr):
         self.set_flag_n(False)
         self.set_flag_pv(False)
         self.set_flag_h(False)
@@ -1685,8 +1683,8 @@ class z80:
 
         self.debug('RRC %s' % name)
 
-    def _im(self, which):
-        self.im = which
+    def _im(self, instr):
+        self.im = instr & 1
 
         self.debug('IM %d' % which)
 
@@ -1808,7 +1806,8 @@ class z80:
 
         self.debug('RES %d, %s' % (bit, src_name))
 
-    def _sbc_pair(self, which):
+    def _sbc_pair(self, instr):
+        which = (instr >> 4) - 4
         (v, name) = self.get_pair(which)
 
         before = self.m16(self.h, self.l)
@@ -1830,7 +1829,7 @@ class z80:
 
         self.debug('SUB HL,%s' % name)
 
-    def _neg(self):
+    def _neg(self, instr):
         org_a = self.compl8(self.a)
         a = -org_a
 
@@ -1860,7 +1859,9 @@ class z80:
             self.iy = (self.iy + 1) & 0xffff
             self.debug('INC IX')
 
-    def _out_c_low(self, which):
+    def _out_c_low(self, instr):
+        which = (instr >> 4) - 4
+
         if which == 0:
             v = self.b
             name = 'B'
@@ -1880,7 +1881,9 @@ class z80:
 
         self.debug('OUT (C), %s' % name)
 
-    def _out_c_high(self, which):
+    def _out_c_high(self, instr):
+        which = (instr >> 4) - 4
+
         if which == 0:
             v = self.c
             name = 'C'
@@ -1905,7 +1908,8 @@ class z80:
 
         self.debug('JP (IY)')
 
-    def _in_ed_low(self, which):
+    def _in_ed_low(self, instr):
+        which = (instr >> 4) - 4
         v = self.in_(self.c)
 
         if which == 0:
@@ -1922,7 +1926,8 @@ class z80:
 
         self.debug('IN %s,(C)' % name)
 
-    def _in_ed_high(self, which):
+    def _in_ed_high(self, instr):
+        which = (instr >> 4) - 4
         v = self.in_(self.c)
 
         if which == 0:
@@ -1942,7 +1947,7 @@ class z80:
 
         self.debug('IN %s,(C)' % name)
 
-    def _outi(self):
+    def _outi(self, instr):
         a = self.m16(self.h, self.l)
         self.out(self.c, self.read_mem(a))
 
@@ -1968,7 +1973,7 @@ class z80:
 
         self.debug('LD (%s + *),%s' % (name, src_name))
 
-    def _ldi(self):
+    def _ldi(self, instr):
         self.set_flag_n(False)
         self.set_flag_pv(False)
         self.set_flag_h(False)
@@ -1994,7 +1999,7 @@ class z80:
 
         self.debug('LDI')
 
-    def _cpdr(self):
+    def _cpdr(self, instr):
         a = self.m16(self.h, self.l)
         c = self.m16(self.b, self.c)
 
@@ -2021,7 +2026,7 @@ class z80:
 
         self.debug('CPDR')
 
-    def _cpir(self):
+    def _cpir(self, instr):
         a = self.m16(self.h, self.l)
         c = self.m16(self.b, self.c)
 
