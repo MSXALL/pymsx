@@ -12,6 +12,7 @@ class z80:
         self.debug_out = debug
 
         self.init_xy()
+        self.init_bits()
 
         self.reset()
 
@@ -641,53 +642,47 @@ class z80:
         return out
 
     def bits(self):
-        instr = self.read_pc_inc()
+        try:
+            instr = self.read_pc_inc()
+            self.debug('bits: %02x' % instr)
+            self.bits_jumps[instr](instr)
 
-        ui = (0xcb << 8) | instr
+        except TypeError as te:
+            self.debug('TypeError bits(%02x): %s' % (instr, te))
+            assert False
 
-        major = instr >> 4
-        minor = instr & 15
-        minor1 = instr & 8
-        minor2 = instr & 7
+    def init_bits(self):
+        self.bits_jumps = [ None ] * 256
 
-        if major == 0x00:
-            if minor1:
-                self._rrc(minor2)
+        for i in range(0x00, 0x08):
+                self.bits_jumps[i] = self._rlc
 
-            else:
-                self._rlc(minor2)
+        for i in range(0x08, 0x10):
+                self.bits_jumps[i] = self._rrc
 
-        elif major == 0x01:
-            if minor1:
-                self._rr(minor2)
+        for i in range(0x10, 0x18):
+                self.bits_jumps[i] = self._rl
 
-            else:
-                self._rl(minor2)
+        for i in range(0x18, 0x20):
+                self.bits_jumps[i] = self._rr
 
-        elif major == 0x02:
-            if minor1:
-                self._sra(minor2)
+        for i in range(0x20, 0x28):
+                self.bits_jumps[i] = self._sla
 
-            else:
-                self._sla(minor2)
+        for i in range(0x28, 0x30):
+                self.bits_jumps[i] = self._sra
 
-        elif major == 0x03:
-            self._srl(minor2)
+        for i in range(0x38, 0x40):
+                self.bits_jumps[i] = self._srl
 
-        elif major >= 0x04 and major <= 0x07:
-            i = instr - 0x40
-            self._bit(i >> 3, minor2)
+        for i in range(0x40, 0x80):
+                self.bits_jumps[i] = self._bit
 
-        elif major >= 0x08 and major <= 0x0b:
-            i = instr - 0x80
-            self._res(i >> 3, minor2)
+        for i in range(0x80, 0xc0):
+                self.bits_jumps[i] = self._res
 
-        elif major >= 0x0c:
-            i = instr - 0xc0
-            self._set(i >> 3, minor2)
-
-        else:
-            self.ui(ui)
+        for i in range(0xc0, 0x100):
+                self.bits_jumps[i] = self._set
 
     def set_add_flags(self, before, value, after):
         self.set_flag_c((after & 0x100) != 0)
@@ -800,7 +795,8 @@ class z80:
         self.out(a, self.a)
         self.debug('OUT (0x%02x), A [%02x]' % (a, self.a))
 
-    def _sla(self, src):
+    def _sla(self, instr):
+        src = instr & 7
         (val, name) = self.get_src(src)
 
         val <<= 1
@@ -820,7 +816,8 @@ class z80:
 
         self.debug('SLA %s' % name)
 
-    def _sra(self, src):
+    def _sra(self, instr):
+        src = instr & 7
         (val, name) = self.get_src(src)
 
         old_7 = val & 128
@@ -1554,7 +1551,8 @@ class z80:
 
         self.debug('RLA')
 
-    def _rlc(self, src):
+    def _rlc(self, instr):
+        src = instr & 0x7
         (val, name) = self.get_src(src)
 
         self.set_flag_n(False)
@@ -1618,7 +1616,8 @@ class z80:
         
         self.debug('LDIR')
 
-    def _rr(self, src):
+    def _rr(self, instr):
+        src = instr & 7
         self.set_flag_n(False)
         self.set_flag_h(False)
 
@@ -1638,7 +1637,8 @@ class z80:
 
         self.debug('RR %s' % name)
 
-    def _rl(self, src):
+    def _rl(self, instr):
+        src = instr & 7
         self.set_flag_n(False)
         self.set_flag_h(False)
 
@@ -1657,7 +1657,8 @@ class z80:
 
         self.debug('RL %s' % name)
 
-    def _rrc(self, src):
+    def _rrc(self, instr):
+        src = instr & 7
         self.set_flag_n(False)
         self.set_flag_h(False)
 
@@ -1743,7 +1744,9 @@ class z80:
 
         self.debug('CCF')
 
-    def _bit(self, nr, src):
+    def _bit(self, instr):
+        nr = (instr - 0x40) >> 3
+        src = instr & 7
         (val, src_name) = self.get_src(src)
 
         self.set_flag_n(False)
@@ -1753,7 +1756,8 @@ class z80:
 
         self.debug('BIT %d, %s' % (nr, src_name))
 
-    def _srl(self, src):
+    def _srl(self, instr):
+        src = instr & 7
         (val, src_name) = self.get_src(src)
 
         self.set_flag_n(False)
@@ -1771,7 +1775,10 @@ class z80:
 
         self.debug('SRL %s' % src_name)
 
-    def _set(self, bit, src):
+    def _set(self, instr):
+        bit = (instr - 0xc0) >> 3
+        src = instr & 7
+
         (val, src_name) = self.get_src(src)
 
         val |= 1 << bit
@@ -1781,7 +1788,10 @@ class z80:
 
         self.debug('SET %d, %s' % (bit, src_name))
 
-    def _res(self, bit, src):
+    def _res(self, instr):
+        bit = (instr - 0x80) >> 3
+        src = instr & 7
+
         (val, src_name) = self.get_src(src)
 
         val &= ~(1 << bit)
