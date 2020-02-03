@@ -1351,6 +1351,15 @@ class z80:
             self.iy &= 0xffff
             self.debug('DEC IY')
 
+    def _ld_sp_ixy(self, instr, is_x):
+        if is_x:
+            self.sp = self.ix
+            self.debug('LD SP,IX')
+
+        else:
+            self.sp = self.iy
+            self.debug('LD SP,IY')
+
     def init_xy(self):
         self.ixy_jumps = [ None ] * 256
 
@@ -1380,12 +1389,13 @@ class z80:
         self.ixy_jumps[0x84] = self._add_a_ixy_h
         self.ixy_jumps[0x85] = self._add_a_ixy_l
         self.ixy_jumps[0x86] = self._add_a_deref_ixy
-        self.ixy_jumps[0xe1] = self._pop_ixy
-        self.ixy_jumps[0xe5] = self._push_ixy
-        self.ixy_jumps[0xe9] = self._jp_ixy
         self.ixy_jumps[0xa6] = self._and_a_ixy_deref
         self.ixy_jumps[0xbe] = self._cp_im_ixy
         self.ixy_jumps[0xcb] = self.ixy_bit
+        self.ixy_jumps[0xe1] = self._pop_ixy
+        self.ixy_jumps[0xe5] = self._push_ixy
+        self.ixy_jumps[0xe9] = self._jp_ixy
+        self.ixy_jumps[0xf9] = self._ld_sp_ixy
 
     def _ix(self):
         try:
