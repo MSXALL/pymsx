@@ -1443,6 +1443,7 @@ class z80:
         self.ed_jumps[0x49] = self._out_c_high
         self.ed_jumps[0x4a] = self._adc_pair
         self.ed_jumps[0x4b] = self._ld_pair_mem
+        self.ed_jumps[0x4f] = self._ld_r_a
         self.ed_jumps[0x50] = self._in_ed_low
         self.ed_jumps[0x51] = self._out_c_low
         self.ed_jumps[0x52] = self._sbc_pair
@@ -1454,6 +1455,8 @@ class z80:
         self.ed_jumps[0x59] = self._out_c_high
         self.ed_jumps[0x5a] = self._adc_pair
         self.ed_jumps[0x5b] = self._ld_pair_mem
+        self.ed_jumps[0x4f] = self._ld_a_r
+        self.ed_jumps[0x50] = self._in_ed_low
         self.ed_jumps[0x60] = self._in_ed_low
         self.ed_jumps[0x61] = self._out_c_low
         self.ed_jumps[0x62] = self._sbc_pair
@@ -1487,6 +1490,14 @@ class z80:
     def _ld_a_i(self, instr):
         self.a = self.i
         self.debug('LD A,I')
+
+    def _ld_r_a(self, instr):
+        self.r = self.a
+        self.debug('LD R,A')
+
+    def _ld_a_r(self, instr):
+        self.a = self.r
+        self.debug('LD A,R')
 
     def _in(self):
         a = self.read_pc_inc()
