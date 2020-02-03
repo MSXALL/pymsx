@@ -1,3 +1,6 @@
+# (C) 2020 by Folkert van Heusden <mail@vanheusden.com>
+# released under AGPL v3.0
+
 import struct
 import sys
 from pagetype import PageType

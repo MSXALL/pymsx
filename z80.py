@@ -1,3 +1,6 @@
+# (C) 2020 by Folkert van Heusden <mail@vanheusden.com>
+# released under AGPL v3.0
+
 import time
 
 class z80:
@@ -647,7 +650,7 @@ class z80:
 
         if major == 0x00:
             if minor1:
-                self.ui(ui)
+                self._rrc(minor2)
 
             else:
                 self._rlc(minor2)
@@ -661,7 +664,7 @@ class z80:
 
         elif major == 0x02:
             if minor1:
-                self.ui(ui)
+                self._sra(minor2)
 
             else:
                 self._sla(minor2)
@@ -814,6 +817,28 @@ class z80:
         self.set_dst(dst, val)
 
         self.debug('SLA %s' % name)
+
+    def _sra(self, src):
+        (val, name) = self.get_src(src)
+
+        old_7 = val & 128
+        self.set_flag_c((val & 1) == 1)
+        val >>= 1
+        val |= old_7
+
+        self.f = 0
+        self.set_flag_z(val == 0)
+        self.set_flag_pv(self.parity(val & 0xff))
+        self.set_flag_s((val & 128) == 128)
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        val &= 255;
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('SRA %s' % name)
 
     def _ld_val_low(self, which):
         val = self.read_pc_inc()
@@ -1364,7 +1389,7 @@ class z80:
             elif minor == 0x05:
                 org = self.a
                 v = self.iy & 255
-                self.a += val
+                self.a += v
                 self.set_add_flags(org, v, self.a)
                 self.a &= 0xff
                 self.debug('ADD A,IYL')
@@ -1508,6 +1533,22 @@ class z80:
 
             elif minor == 0x06:
                 self._add_a_deref_ixy(True)
+
+            elif minor == 0x0c:
+                org = self.a
+                v = self.ix >> 8
+                self.a += v + self.get_flag_c()
+                self.set_add_flags(org, v, self.a)
+                self.a &= 0xff
+                self.debug('ADC A,IXH')
+
+            elif minor == 0x0d:
+                org = self.a
+                v = self.ix & 255
+                self.a += v + self.get_flag_c()
+                self.set_add_flags(org, v, self.a)
+                self.a &= 0xff
+                self.debug('ADC A,IXL')
 
             else:
                 self.ui(ui)
@@ -1832,6 +1873,26 @@ class z80:
         self.set_dst(dst, val)
 
         self.debug('RL %s' % name)
+
+    def _rrc(self, src):
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        (val, name) = self.get_src(src)
+        old_0 = val & 1
+        self.set_flag_c(old_0 == 1)
+
+        val >>= 1
+        val |= old_0 << 7
+
+        self.set_flag_pv(self.parity(val))
+        self.set_flag_z(val == 0)
+        self.set_flag_s(val >= 128)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('RRC %s' % name)
 
     def _im(self, which):
         self.im = which
