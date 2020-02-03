@@ -13,6 +13,7 @@ class z80:
 
         self.init_xy()
         self.init_bits()
+        self.init_parity()
 
         self.reset()
 
@@ -534,13 +535,19 @@ class z80:
 
         assert False
 
+    def init_parity(self):
+        self.parity_lookup = [ 0 ] * 256
+
+        for v in range(0, 256):
+            count = 0
+
+            for i in range(0, 8):
+                count += (v & (1 << i)) != 0
+
+            self.parity_lookup[v] = (count & 1) == 0
+
     def parity(self, v):
-        count = 0
-
-        for i in range(0, 8):
-            count += (v & (1 << i)) != 0
-
-        return (count & 1) == 0
+        return self.parity_lookup[v]
 
     def read_mem_16(self, a):
         low = self.read_mem(a)
