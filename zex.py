@@ -4,6 +4,7 @@
 # released under AGPL v3.0
 
 import sys
+import time
 from inspect import getframeinfo, stack
 from z80 import z80
 
@@ -67,7 +68,10 @@ for b in zex:
 cpu.sp = 0xf000
 cpu.pc = 0x0100
 
-while True:
+td = int(sys.argv[1]) if len(sys.argv) > 1 else None
+tstart = time.time()
+
+while td == None or time.time() - tstart <= td:
     if cpu.pc == 0x0005:
         if cpu.c == 2:
             print('%c' % cpu.e, end='', flush=True)
