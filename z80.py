@@ -1353,7 +1353,23 @@ class z80:
                 self.ui(ui)
 
         elif major == 0x08:
-            if minor == 0x06:
+            if minor == 0x04:
+                org = self.a
+                v = self.iy >> 8
+                self.a += v
+                self.set_add_flags(org, v, self.a)
+                self.a &= 0xff
+                self.debug('ADD A,IYH')
+
+            elif minor == 0x05:
+                org = self.a
+                v = self.iy & 255
+                self.a += val
+                self.set_add_flags(org, v, self.a)
+                self.a &= 0xff
+                self.debug('ADD A,IYL')
+
+            elif minor == 0x06:
                 self._add_a_deref_ixy(False)
 
             else:
