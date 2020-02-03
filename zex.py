@@ -29,20 +29,24 @@ def reset_mem():
 def read_mem(a):
     page = a >> 14
 
-    if slots[page][pages[page]] == None:
+    slot = slots[page][pages[page]]
+
+    if slot == None:
         return 0xee
 
-    return slots[page][pages[page]][a & 0x3fff]
+    return slot[a & 0x3fff]
 
 def write_mem(a, v):
     global subpage
 
     page = a >> 14
 
-    if slots[page][pages[page]] == None:
+    slot = slots[page][pages[page]]
+
+    if slot == None:
         return
 
-    slots[page][pages[page]][a & 0x3fff] = v
+    slot[a & 0x3fff] = v
 
 def read_io(a):
     return io[a]
@@ -68,10 +72,7 @@ for b in zex:
 cpu.sp = 0xf000
 cpu.pc = 0x0100
 
-td = int(sys.argv[1]) if len(sys.argv) > 1 else None
-tstart = time.time()
-
-while td == None or time.time() - tstart <= td:
+for dummy in range(0, 1000000):
     if cpu.pc == 0x0005:
         if cpu.c == 2:
             print('%c' % cpu.e, end='', flush=True)
@@ -88,7 +89,7 @@ while td == None or time.time() - tstart <= td:
 
                 a += 1
 
-        cpu._ret(True, '')
+        cpu._ret(True, 'bla')
 
         continue
 

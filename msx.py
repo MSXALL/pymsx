@@ -13,6 +13,8 @@ from scc import scc
 from z80 import z80
 from screen_kb import screen_kb
 
+abort_time = 60
+
 io = [ 0 ] * 256
 
 subpage = 0x00
@@ -28,15 +30,15 @@ def debug(x):
     print('%s <%02x/%02x>' % (x, io[0xa8], subpage), file=sys.stderr)
 
 scc_sig = None
-#scc_rom_file = 'md1.rom'
-#scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
-#scc_sig = scc_obj.get_signature() if scc_obj else None
+scc_rom_file = 'md1.rom'
+scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
+scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
-disk_rom_file = 'FSFD1.ROM'
-disk_image_file = 'md1.dsk'
-disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
-disk_sig = disk_obj.get_signature() if disk_obj else None
+#disk_rom_file = 'FSFD1.ROM'
+#disk_image_file = 'md1.dsk'
+#disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
+#disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
 #gen_rom_file = None
@@ -66,18 +68,21 @@ def read_mem(a):
 
     page = a >> 14
 
-    if slots[page][pages[page]] == None:
+    slot = slots[page][pages[page]]
+    if slot == None:
         return 0xee
 
-    if slots[page][pages[page]][1] == PageType.SCC:
+    slot_type = slot[1]
+
+    if slot_type == PageType.SCC:
         obj = slots[page][pages[page]][2]
         return obj.read_mem(a)
 
-    if slots[page][pages[page]][1] == PageType.DISK:
+    if slot_type == PageType.DISK:
         obj = slots[page][pages[page]][2]
         return obj.read_mem(a)
 
-    return slots[page][pages[page]][0][a & 0x3fff]
+    return slot[0][a & 0x3fff]
 
 def write_mem(a, v):
     global subpage
@@ -90,25 +95,28 @@ def write_mem(a, v):
 
     page = a >> 14
 
-    if slots[page][pages[page]] == None:
+    slot = slots[page][pages[page]]
+    if slot == None:
         debug('Writing %02x to %04x which is not backed by anything' % (v, a))
         return
     
-    if slots[page][pages[page]][1] == PageType.ROM:
+    slot_type = slot[1]
+
+    if slot_type == PageType.ROM:
         debug('Writing %02x to %04x which is ROM' % (v, a))
         return
     
-    if slots[page][pages[page]][1] == PageType.SCC:
-        obj = slots[page][pages[page]][2]
+    if slot_type == PageType.SCC:
+        obj = slot[2]
         obj.write_mem(a, v)
         return
     
-    if slots[page][pages[page]][1] == PageType.DISK:
-        obj = slots[page][pages[page]][2]
+    if slot_type == PageType.DISK:
+        obj = slot[2]
         obj.write_mem(a, v)
         return
 
-    slots[page][pages[page]][0][a & 0x3fff] = v
+    slot[0][a & 0x3fff] = v
 
 def read_io(a):
     debug('Get I/O register %02x' % a)
@@ -151,6 +159,10 @@ dk.start()
 
 t = threading.Thread(target=cpu_thread)
 t.start()
+
+if abort_time:
+    time.sleep(abort_time)
+    stop_flag = True
 
 try:
     t.join()

@@ -36,16 +36,19 @@ class screen_kb(threading.Thread):
         self.win.nodelay(True)
         curses.nonl()
 
-        for mfg in range(0, 16):
-            for mbg in range(0, 16):
-                pair = mfg * 16 + mbg
-                if pair == 0:
-                    continue
+        try:
+            for mfg in range(0, 16):
+                for mbg in range(0, 16):
+                    pair = mfg * 16 + mbg
+                    if pair == 0:
+                        continue
 
-                fg = self.find_color(mfg)
-                bg = self.find_color(mbg)
+                    fg = self.find_color(mfg)
+                    bg = self.find_color(mbg)
 
-                curses.init_pair(pair, fg, bg)
+                    curses.init_pair(pair, fg, bg)
+        except curses.error:
+            pass
 
         self.keyboard_queue = []
         self.k_lock = threading.Lock()
