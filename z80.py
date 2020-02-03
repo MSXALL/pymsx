@@ -1340,6 +1340,17 @@ class z80:
         self.a &= 0xff
         self.debug('ADD A,I%sL' % 'X' if is_ix else 'Y')
 
+    def _dec_ixy(self, instr, is_x):
+        if is_x:
+            self.ix -= 1
+            self.ix &= 0xffff
+            self.debug('DEC IX')
+
+        else:
+            self.iy -= 1
+            self.iy &= 0xffff
+            self.debug('DEC IY')
+
     def init_xy(self):
         self.ixy_jumps = [ None ] * 256
 
@@ -1350,6 +1361,7 @@ class z80:
         self.ixy_jumps[0x23] = self._inc_ixy
         self.ixy_jumps[0x29] = self._add_pair_ixy
         self.ixy_jumps[0x2a] = self._ld_ixy_from_mem
+        self.ixy_jumps[0x2b] = self._dec_ixy
         self.ixy_jumps[0x39] = self._add_pair_ixy
         self.ixy_jumps[0x46] = self._ld_X_ixy_deref
         self.ixy_jumps[0x4e] = self._ld_X_ixy_deref
