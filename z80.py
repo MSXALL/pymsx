@@ -33,6 +33,7 @@ class z80:
         self.pc = 0
         self.sp = 0xffff
         self.im = 0
+        self.i = self.r = 0
 
         self.cycles = 0
         self.int = False
