@@ -1475,6 +1475,7 @@ class z80:
         self.ed_jumps[0xa3] = self._outi
         self.ed_jumps[0xb0] = self._ldir
         self.ed_jumps[0xb1] = self._cpir
+        self.ed_jumps[0xb3] = self._otir
         self.ed_jumps[0xb9] = self._cpdr
 
     def _in(self):
@@ -2027,6 +2028,26 @@ class z80:
         self.set_flag_z(result == 0)
 
         self.debug('CPDR')
+
+    def _otir(self, instr):
+        a = self.m16(self.h, self.l)
+
+        while True:
+            mem = self.read_mem(a)
+            self.write_io(self.c, mem)
+
+            a = self.incp16(a)
+            self.b -= 1
+
+            if self.b == 0:
+                break
+
+        (self.h, self.l) = self.u16(a)
+
+        self.set_flag_n(True)
+        self.set_flag_z(True)
+
+        self.debug('OTIR')
 
     def _cpir(self, instr):
         a = self.m16(self.h, self.l)
