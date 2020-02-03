@@ -87,6 +87,8 @@ def read_mem(a):
 def write_mem(a, v):
     global subpage
 
+    if not (v >= 0 and v <= 255):
+        print(v, file=sys.stderr)
     assert v >= 0 and v <= 255
 
     if a == 0xffff:

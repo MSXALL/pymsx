@@ -874,6 +874,7 @@ class z80:
 
     def _ld_val_high(self, which):
         val = self.read_pc_inc()
+        assert val >= 0 and val <= 255
 
         if which == 0:
             self.b = val
@@ -2158,6 +2159,8 @@ class z80:
 
         elif t == 3:
             self.a += 0x9a if self.get_flag_n() else 0x66
+
+        self.a &= 0xff
 
         self.set_flag_s((self.a & 128) == 128)
         self.set_flag_z(self.a == 0x00)
