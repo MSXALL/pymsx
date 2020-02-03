@@ -13,7 +13,7 @@ from scc import scc
 from z80 import z80
 from screen_kb import screen_kb
 
-abort_time = 60
+abort_time = None # 60
 
 io = [ 0 ] * 256
 
@@ -172,3 +172,7 @@ except KeyboardInterrupt:
     t.join()
 
 dk.stop()
+
+for i in range(0, 256):
+    if cpu.counts[i]:
+        print('instr %02x: %d' % (i, cpu.counts[i]), file=sys.stderr)
