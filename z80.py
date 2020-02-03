@@ -11,6 +11,8 @@ class z80:
         self.write_io = write_io
         self.debug_out = debug
 
+        self.init_xy()
+
         self.reset()
 
     def debug(self, x):
@@ -1109,10 +1111,10 @@ class z80:
 
         self.debug('INC %s' % name)
 
-    def _add_pair_ixy(self, which, is_ix):
+    def _add_pair_ixy(self, instr, is_ix):
         org_val = val = self.ix if is_ix else self.iy
 
-        (v, name) = self.get_pair(which)
+        (v, name) = self.get_pair(instr >> 4)
         val += v
 
         self.set_flag_h((((org_val & 0x0fff) + (v & 0x0fff)) & 0x1000) == 0x1000)
@@ -1270,327 +1272,112 @@ class z80:
         self.f, self.f_ = self.f_, self.f
         self.debug('EX AF')
 
-    def _push_iy(self):
-        self.push(self.iy)
+    def _push_ixy(self, instr, is_ix):
+        self.push(self.ix if is_ix else self.iy)
+        self.debug('PUSH I%s' % 'X' if is_ix else 'Y')
 
-        self.debug('PUSH IY')
-
-    def _pop_iy(self):
-        self.iy = self.pop()
-
-        self.debug('POP IY')
-
-    def _push_ix(self):
-        self.push(self.ix)
-
-        self.debug('PUSH IX')
-
-    def _pop_ix(self):
-        self.ix = self.pop()
-
-        self.debug('POP IX')
-
-    def _iy(self):
-        instr = self.read_pc_inc()
-
-        ui = (0xfd << 8) | instr
-
-        major = instr >> 4
-        minor = instr & 15
-        minor1 = instr & 8
-        minor2 = instr & 7
-
-        if major == 0x00:
-            if minor == 0x09:
-                self._add_pair_ixy(major, False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x01:
-            if minor == 0x09:
-                self._add_pair_ixy(major, False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x02:
-            if minor == 0x01:  # LD IY,**
-                self._ld_iy()
-
-            elif minor == 0x09:
-                self._add_pair_ixy(major, False)
-
-            elif minor == 0x0a:
-                a = self.read_pc_inc_16()
-                v = self.read_mem_16(a)
-                self.iy = v
-                self.debug('LD IY,(0x%04x)' % a)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x03:
-            if minor == 0x09:
-                self._add_pair_ixy(major, False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x04:
-            if minor == 0x06:
-                self._ld_X_ixy_deref(instr, False)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x05:
-            if minor == 0x06:
-                self._ld_X_ixy_deref(instr, False)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x06:
-            if minor == 0x06:
-                self._ld_X_ixy_deref(instr, False)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x07:
-            if minor <= 0x05:
-                self._ld_ixy_X(minor, False)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x08:
-            if minor == 0x04:
-                org = self.a
-                v = self.iy >> 8
-                self.a += v
-                self.set_add_flags(org, v, self.a)
-                self.a &= 0xff
-                self.debug('ADD A,IYH')
-
-            elif minor == 0x05:
-                org = self.a
-                v = self.iy & 255
-                self.a += v
-                self.set_add_flags(org, v, self.a)
-                self.a &= 0xff
-                self.debug('ADD A,IYL')
-
-            elif minor == 0x06:
-                self._add_a_deref_ixy(False)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x0e:
-            if minor == 0x01:  # POP IY
-                self._pop_iy()
-
-            elif minor == 0x05:  # PUSH IY
-                self._push_iy()
-
-            elif minor == 0x09:  # JP (IY)
-                self._jp_ref_iy()
-
-            else:
-                self.ui(ui)
+    def _pop_ixy(self, instr, is_ix):
+        if is_ix:
+            self.ix = self.pop()
+            self.debug('POP IX')
 
         else:
-            self.ui(ui)
+            self.iy = self.pop()
+            self.debug('POP IY')
+
+    def _jp_ixy(self, instr, is_ix):
+        self.pc = self.ix if is_ix else self.iy
+
+        self.debug('JP (I%s)' % 'X' if is_ix else 'Y')
+
+    def _ld_mem_from_ixy(self, instr, is_ix):
+            a = self.read_pc_inc_16()
+            self.write_mem_16(a, self.ix if is_ix else self.iy)
+            self.debug('LD (0x%04x),I%s' % (a, 'X' if is_ix else 'Y'))
+
+    def _ld_ixy_from_mem(self, instr, is_ix):
+        a = self.read_pc_inc_16()
+        v = self.read_mem_16(a)
+
+        if is_ix:
+            self.ix = v
+        else:
+            self.iy = v
+
+        self.debug('LD I%s,(0x%04x)' % ('X' if is_ix else 'Y', a))
+
+    def _add_a_ixy_h(self, instr, is_x):
+        org = self.a
+        v = (self.ix if is_x else self.iy) >> 8
+        self.a += v
+        self.set_add_flags(org, v, self.a)
+        self.a &= 0xff
+        self.debug('ADD A,I%sH' % 'X' if is_ix else 'Y')
+
+    def _add_a_ixy_l(self, instr, is_x):
+        org = self.a
+        v = (self.ix if is_x else self.iy) & 255
+        self.a += v
+        self.set_add_flags(org, v, self.a)
+        self.a &= 0xff
+        self.debug('ADD A,I%sL' % 'X' if is_ix else 'Y')
+
+    def init_xy(self):
+        self.ixy_jumps = [ None ] * 256
+
+        self.ixy_jumps[0x09] = self._add_pair_ixy
+        self.ixy_jumps[0x19] = self._add_pair_ixy
+        self.ixy_jumps[0x21] = self._ld_ixy
+        self.ixy_jumps[0x22] = self._ld_mem_from_ixy
+        self.ixy_jumps[0x23] = self._inc_ixy
+        self.ixy_jumps[0x29] = self._add_pair_ixy
+        self.ixy_jumps[0x2a] = self._ld_ixy_from_mem
+        self.ixy_jumps[0x39] = self._add_pair_ixy
+        self.ixy_jumps[0x46] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x4e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x56] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x5e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x66] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x6e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x70] = self._ld_ixy_X
+        self.ixy_jumps[0x71] = self._ld_ixy_X
+        self.ixy_jumps[0x72] = self._ld_ixy_X
+        self.ixy_jumps[0x73] = self._ld_ixy_X
+        self.ixy_jumps[0x74] = self._ld_ixy_X
+        self.ixy_jumps[0x75] = self._ld_ixy_X
+        self.ixy_jumps[0x76] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x7e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x84] = self._add_a_ixy_h
+        self.ixy_jumps[0x85] = self._add_a_ixy_l
+        self.ixy_jumps[0x86] = self._add_a_deref_ixy
+        self.ixy_jumps[0xe1] = self._pop_ixy
+        self.ixy_jumps[0xe5] = self._push_ixy
+        self.ixy_jumps[0xe9] = self._jp_ixy
+        self.ixy_jumps[0xa6] = self._and_a_ixy_deref
+        self.ixy_jumps[0xbe] = self._cp_im_ixy
+        self.ixy_jumps[0xcb] = self.ixy_bit
 
     def _ix(self):
-        instr = self.read_pc_inc()
+        try:
+            instr = self.read_pc_inc()
+            self.debug('IX: %02x' % instr)
+            self.ixy_jumps[instr](instr, True)
 
-        ui = (0xdd << 8) | instr
+        except TypeError as te:
+            self.debug('TypeError IX(%02x): %s' % (instr, te))
+            assert False
 
-        major = instr >> 4
-        minor = instr & 15
-        minor1 = instr & 8
-        minor2 = instr & 7
+    def _iy(self):
+        try:
+            instr = self.read_pc_inc()
+            self.debug('IY: %02x' % instr)
+            self.ixy_jumps[instr](instr, False)
 
-        if major == 0x00:
-            if minor == 0x09:
-                self._add_pair_ixy(major, True)
+        except TypeError as te:
+            self.debug('TypeError IY(%02x): %s' % (instr, te))
+            assert False
 
-            else:
-                self.ui(ui)
-
-        elif major == 0x01:
-            if minor == 0x09:
-                self._add_pair_ixy(major, True)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x02:
-            if minor == 0x01:  # LD IX,**
-                self._ld_ix()
-
-            elif minor == 0x02:  # LD (**),IX
-                a = self.read_pc_inc_16()
-                self.write_mem_16(a, self.ix)
-                self.debug('LD (0x%04x),IX' % a)
-
-            elif minor == 0x03:  # INC IX
-                self._inc_ix()
-
-            elif minor == 0x09:
-                self._add_pair_ixy(major, True)
-
-            elif minor == 0x0a:
-                a = self.read_pc_inc_16()
-                v = self.read_mem_16(a)
-                ix = self.u16(v)
-                self.debug('LD IX,(0x%04x)' % a)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x03:
-            if minor == 0x09:
-                self._add_pair_ixy(major, True)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x04:
-            if minor == 0x06:
-                self._ld_X_ixy_deref(instr, True)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, True)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x05:
-            if minor == 0x06:
-                self._ld_X_ixy_deref(instr, True)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, True)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x06:
-            if minor == 0x06:
-                self._ld_X_ixy_deref(instr, True)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, True)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x07:
-            if minor <= 0x05:
-                self._ld_ixy_X(minor, True)
- 
-            elif minor == 0x06:
-                self._ld_X_ixy_deref(instr)
-
-            elif minor == 0x0e:
-                self._ld_X_ixy_deref(instr, True)
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x08:
-            if minor == 0x04:
-                org = self.a
-                v = self.ix >> 8
-                self.a += v
-                self.set_add_flags(org, v, self.a)
-                self.a &= 0xff
-                self.debug('ADD A,IXH')
-
-            elif minor == 0x05:
-                org = self.a
-                v = self.ix & 255
-                self.a += v
-                self.set_add_flags(org, v, self.a)
-                self.a &= 0xff
-                self.debug('ADD A,IXL')
-
-            elif minor == 0x06:
-                self._add_a_deref_ixy(True)
-
-            elif minor == 0x0c:
-                org = self.a
-                v = self.ix >> 8
-                self.a += v + self.get_flag_c()
-                self.set_add_flags(org, v, self.a)
-                self.a &= 0xff
-                self.debug('ADC A,IXH')
-
-            elif minor == 0x0d:
-                org = self.a
-                v = self.ix & 255
-                self.a += v + self.get_flag_c()
-                self.set_add_flags(org, v, self.a)
-                self.a &= 0xff
-                self.debug('ADC A,IXL')
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x0a:
-            if minor == 0x06:
-                self._and_a_ix_deref()
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x0b:
-            if minor == 0x0e:
-                self._cp_im_ix()
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x0c:
-            if minor == 0x0b:  # IX instructions
-                self.ix_bit()
-
-            else:
-                self.ui(ui)
-
-        elif major == 0x0e:
-            if minor == 0x01:  # POP IX
-                self._pop_ix()
-
-            elif minor == 0x05:  # PUSH IX
-                self._push_ix()
-
-            elif minor == 0x09:  # JP (IX)
-                self._jp_ix()
-
-            else:
-                self.ui(ui)
-
-        else:
-            self.ui(ui)
-
-    def ix_bit(self):
+    def ixy_bit(self, instr, which):
         instr = self.read_pc_inc()
 
         ui = (0xddcb << 8) | instr
@@ -1600,11 +1387,7 @@ class z80:
         minor1 = instr & 8
         minor2 = instr & 7
 
-        if major == 0x00:
-            self.ui(ui)
-
-        else:
-            self.ui(ui)
+        self.ui(ui)
 
     def _ed(self):
         instr = self.read_pc_inc()
@@ -1924,11 +1707,6 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(False)
 
-    def _jp_ix(self):
-        self.pc = self.ix
-
-        self.debug('JP (IX)')
-
     def _ex_sp_hl(self):
         hl = self.m16(self.h, self.l)
         org_sp_deref = self.read_mem_16(self.sp)
@@ -2045,22 +1823,25 @@ class z80:
 
         self.debug('NEG')
 
-    def _ld_ix(self):
+    def _ld_ixy(self, instr, is_ix):
         v = self.read_pc_inc_16()
-        self.ix = v
 
-        self.debug('LD ix,**')
+        if is_ix:
+            self.ix = v
+            self.debug('LD ix,**')
 
-    def _ld_iy(self):
-        v = self.read_pc_inc_16()
-        self.iy = v
+        else:
+            self.iy = v
+            self.debug('LD iy,**')
 
-        self.debug('LD iy,**')
-
-    def _inc_ix(self):
-        self.ix = (self.ix + 1) & 0xffff
-
-        self.debug('INC IX')
+    def _inc_ixy(self, instr, is_ix):
+        if is_ix:
+            self.ix = (self.ix + 1) & 0xffff
+            self.debug('INC IX')
+        
+        else:
+            self.iy = (self.iy + 1) & 0xffff
+            self.debug('INC IX')
 
     def _out_c_low(self, which):
         if which == 0:
@@ -2158,7 +1939,8 @@ class z80:
 
         self.debug('OUTI')
 
-    def _ld_ixy_X(self, which, is_ix):
+    def _ld_ixy_X(self, instr, is_ix):
+        which = instr & 15
         offset = self.compl8(self.read_pc_inc())
         ixy = self.ix if is_ix else self.iy
         name = 'IX' if is_ix else 'IY'
@@ -2249,26 +2031,26 @@ class z80:
 
         self.debug('CPIR')
 
-    def _cp_im_ix(self):
+    def _cp_im_ixy(self, instr, is_ix):
         offset = self.compl8(self.read_pc_inc())
-        a = (self.ix + offset) & 0xffff
+        a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
 
         v  = self.read_mem(a)
 
         temp = self.a - v
         self.set_sub_flags(self.a, v, temp)
 
-        self.debug('CP (IX + *)')
+        self.debug('CP (I%s + *)' % 'X' if is_ix else 'Y')
 
-    def _and_a_ix_deref(self):
+    def _and_a_ixy_deref(self, instr, is_ix):
         offset = self.compl8(self.read_pc_inc())
-        a = (self.ix + offset) & 0xffff
+        a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
 
         self.a &= self.read_mem(a)
 
         self.and_flags()
 
-        self.debug('AND (IX+*)')
+        self.debug('AND (I%s + *)' % 'X' if is_ix else 'Y')
 
     def _ld_X_ixy_deref(self, which, is_ix):
         offset = self.compl8(self.read_pc_inc())
@@ -2310,7 +2092,7 @@ class z80:
 
         self.debug('LD %s,(IX+*)' % name)
 
-    def _add_a_deref_ixy(self, is_ix):
+    def _add_a_deref_ixy(self, instr, is_ix):
         offset = self.compl8(self.read_pc_inc())
         ixy = self.ix if is_ix else self.iy
         name = 'IX' if is_ix else 'IY'
