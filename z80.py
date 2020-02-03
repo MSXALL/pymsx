@@ -12,6 +12,7 @@ class z80:
         self.debug_out = debug
 
         self.init_xy()
+        self.init_xy_bit()
         self.init_bits()
         self.init_parity()
         self.init_ext()
@@ -1417,17 +1418,48 @@ class z80:
             self.debug('TypeError IY(%02x): %s' % (instr, te))
             assert False
 
+    def init_xy_bit(self):
+        self.ixy_bit_jumps = [ None ] * 256
+
+        for i in range(0x00, 0x08):
+                self.ixy_bit_jumps[i] = self._rlc_ixy
+
+#        for i in range(0x08, 0x10):
+#                self.ixy_bit_jumps[i] = self._rrc_ixy
+
+#        for i in range(0x10, 0x18):
+#                self.ixy_bit_jumps[i] = self._rl_ixy
+
+#        for i in range(0x18, 0x20):
+#                self.ixy_bit_jumps[i] = self._rr_ixy
+
+#        for i in range(0x20, 0x28):
+#                self.ixy_bit_jumps[i] = self._sla_ixy
+
+#        for i in range(0x28, 0x30):
+#                self.ixy_bit_jumps[i] = self._sra_ixy
+
+#        for i in range(0x38, 0x40):
+#                self.ixy_bit_jumps[i] = self._srl_ixy
+
+#        for i in range(0x40, 0x80):
+#                self.ixy_bit_jumps[i] = self._bit_ixy
+
+#        for i in range(0x80, 0xc0):
+#                self.ixy_bit_jumps[i] = self._res_ixy
+
+#        for i in range(0xc0, 0x100):
+#                self.ixy_bit_jumps[i] = self._set_ixy
+
     def ixy_bit(self, instr, which):
-        instr = self.read_pc_inc()
+        try:
+            instr = self.read_pc_inc()
+            self.debug('I%s: %02x' % ('X' if which else 'Y', instr))
+            self.ixy_bit_jumps[instr](instr, which)
 
-        ui = (0xddcb << 8) | instr
-
-        major = instr >> 4
-        minor = instr & 15
-        minor1 = instr & 8
-        minor2 = instr & 7
-
-        self.ui(ui)
+        except TypeError as te:
+            self.debug('TypeError IXY_BIT(%02x): %s' % (instr, te))
+            assert False
 
     def _ed(self):
         try:
@@ -1628,6 +1660,39 @@ class z80:
         self.set_flag_s((val & 0x80) == 0x80)
 
         self.debug('RLC %s' % name)
+
+    def _rlc_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        val = self.read_mem(a)
+
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        val <<= 1
+
+        if val & 0x100:
+            self.set_flag_c(True)
+            val |= 1
+
+        else:
+            self.set_flag_c(False)
+
+        val &= 0xff
+
+        dst = instr & 0x7
+        if dst == 6:
+            self.write_mem(a, val)
+
+        else:
+            dst_name = self.set_dst(dst, val)
+
+        self.set_flag_pv(self.parity(val))
+        self.set_flag_s((val & 0x80) == 0x80)
+
+        self.debug('RLC (%s + 0x%02x), %s' % (name, offset, dst_name))
 
     def _cp_mem(self):
         val = self.read_pc_inc()
