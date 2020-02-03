@@ -1686,7 +1686,7 @@ class z80:
     def _im(self, instr):
         self.im = instr & 1
 
-        self.debug('IM %d' % which)
+        self.debug('IM %d' % self.im)
 
     def _ret_always(self):
         self.pc = self.pop()
