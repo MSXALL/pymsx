@@ -344,6 +344,9 @@ class z80:
                 elif major == 0x0d:  # EXX
                     self._exx()
 
+                elif major == 0x0e:
+                    self._jp_hl()
+
                 elif major == 0x0f:  # LD SP, HL
                     self._ld_sp_hl()
 
@@ -451,8 +454,6 @@ class z80:
         return (v >> 8, v & 0xff)
 
     def compl8(self, v):
-        assert v >= 0 and v <= 255
-
         if v >= 128:
             return -(256 - v)
 
@@ -2163,3 +2164,8 @@ class z80:
         self.set_flag_pv(self.parity(self.a))
 
         self.debug('DAA')
+
+    def _jp_hl(self):
+        self.pc = self.m16(self.h, self.l)
+
+        self.debug('JP (HL)')
