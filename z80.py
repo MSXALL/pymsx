@@ -76,6 +76,9 @@ class z80:
         if instr == 0x18:
             self._jr(True, '')
 
+        elif instr == 0xc3:
+            self._jp(True, None)
+
         elif instr == 0x20:
             self._jr(not self.get_flag_z(), "nz")
 
@@ -87,6 +90,96 @@ class z80:
 
         elif instr == 0x38:
             self._jr(self.get_flag_c(), 'c')
+
+        else:
+            assert False
+
+    def _ret_wrap(self, instr):
+        if instr == 0xc0:
+            self._ret(not self.get_flag_z(), 'NZ')
+
+        elif instr == 0xc8:
+            self._ret(self.get_flag_z(), 'Z')
+
+        elif instr == 0xd0:
+            self._ret(not self.get_flag_c(), 'NC')
+
+        elif instr == 0xd8:
+            self._ret(self.get_flag_c(), 'C')
+
+        elif instr == 0xe0:
+            self._ret(not self.get_flag_pv(), 'PO')
+
+        elif instr == 0xe8:
+            self._ret(not self.get_flag_s(), 'P')
+
+        elif instr == 0xf0:
+            self._ret(not self.get_flag_s(), 'P')
+
+        elif instr == 0xf8:
+            self._ret(self.get_flag_s(), 'M')
+
+        else:
+            assert False
+
+    def _jp_wrap(self, instr):
+        if instr == 0xc0:
+            self._jp(not self.get_flag_z(), 'NZ')
+
+        elif instr == 0xc3:
+            self._jp(True, '')
+
+        elif instr == 0xca:  # JP Z,**
+            self._jp(self.get_flag_z(), 'Z')
+
+        elif instr == 0xd0:
+            self._jp(not self.get_flag_c(), 'NC')
+
+        elif instr == 0xda:  # JP c,**
+            self._jp(self.get_flag_c(), 'C')
+
+        elif instr == 0xe0:
+            self._jp(not self.get_flag_pv(), 'PO')
+
+        elif instr == 0xea:  # JP pe,**
+            self._jp(self.get_flag_pv(), 'PE')
+
+        elif instr == 0xf0:
+            self._jp(not self.get_flag_s(), 'P')
+
+        elif instr == 0xfa:  # JP M,**
+            self._jp(self.get_flag_s(), 'M')
+
+        else:
+            assert False
+
+    def _call_wrap(self, instr):
+        if instr == 0xc4:
+            self._call_flag(not self.get_flag_z(), 'NZ')
+
+        elif instr == 0xcc:  # CALL Z,**
+            self._call_flag(self.get_flag_z(), 'Z')
+
+        elif instr == 0xd4:
+            self._call_flag(not self.get_flag_c(), 'NC')
+
+        elif instr == 0xdc:  # CALL C,**
+            self._call_flag(self.get_flag_c(), 'C')
+
+        elif instr == 0xe4:
+            self._call_flag(not self.get_flag_pv(), 'PO')
+
+        elif instr == 0xec:  # CALL PE,**
+            self._call_flag(self.get_flag_pv(), 'PE')
+
+        elif instr == 0xf4:
+            self._call_flag(self.get_flag_pv(), 'P')
+
+        elif instr == 0xfc:  # CALL M,**
+            self._call_flag(self.get_flag_s(), 'M')
+
+        else:
+            assert False
 
     def step(self):
         if self.int:
@@ -114,7 +207,7 @@ class z80:
                     pass  # NOP
 
                 elif major == 0x01:
-                    self._djnz()
+                    self._djnz(instr)
 
                 elif major == 0x02:
                     self._jr_wrapper(instr)
@@ -126,14 +219,14 @@ class z80:
                     self.ui(instr)
 
             elif minor == 0x01:
-                self._ld_pair(major)
+                self._ld_pair(instr)
 
             elif minor == 0x02:
                 if major == 0x00 or major == 0x01:
-                    self._ld_pair_from_a(major)
+                    self._ld_pair_from_a(instr)
 
                 elif major == 0x02 or major == 0x03:
-                    self._ld_imem_from(major)
+                    self._ld_imem_from(instr)
 
                 else:
                     self.ui(instr)
@@ -212,7 +305,7 @@ class z80:
                     self._rrca(instr)
 
                 elif major == 0x01:
-                    self._rr(7)
+                    self._rr(instr)
 
                 elif major == 0x02:  # CPL
                     self._cpl(instr)
@@ -252,16 +345,16 @@ class z80:
         elif major >= 0x0c:
             if minor == 0x00:
                 if major == 0x0c:
-                    self._ret(not self.get_flag_z(), 'NZ')
+                    self._ret_wrap(instr)
 
                 elif major == 0x0d:
-                    self._ret(not self.get_flag_c(), 'NC')
+                    self._ret_wrap(instr)
 
                 elif major == 0x0e:
-                    self._ret(not self.get_flag_pv(), 'PO')
+                    self._ret_wrap(instr)
 
                 elif major == 0x0f:
-                    self._ret(not self.get_flag_s(), 'P')
+                    self._ret_wrap(instr)
 
                 else:
                     self.ui(instr)
@@ -271,23 +364,23 @@ class z80:
 
             elif minor == 0x02:
                 if major == 0x0c:
-                    self._jp(not self.get_flag_z(), 'NZ')
+                    self._jp_wrap(instr)
 
                 elif major == 0x0d:
-                    self._jp(not self.get_flag_c(), 'NC')
+                    self._jp_wrap(instr)
 
                 elif major == 0x0e:
-                    self._jp(not self.get_flag_pv(), 'PO')
+                    self._jp_wrap(instr)
 
                 elif major == 0x0f:
-                    self._jp(not self.get_flag_s(), 'P')
+                    self._jp_wrap(instr)
 
                 else:
                     self.ui(instr)
 
             elif minor == 0x03:
                 if major == 0x0c:  # JP
-                    self._jp(True, None)
+                    self._jp_wrap(instr)
 
                 elif major == 0x0d:  # OUT (*), a
                     self._out(instr)
@@ -303,16 +396,16 @@ class z80:
 
             elif minor == 0x04:
                 if major == 0x0c:
-                    self._call_flag(not self.get_flag_z(), 'NZ')
+                    self._call_wrap(instr)
 
                 elif major == 0x0d:
-                    self._call_flag(not self.get_flag_c(), 'NC')
+                    self._call_wrap(instr)
 
                 elif major == 0x0e:
-                    self._call_flag(not self.get_flag_pv(), 'PO')
+                    self._call_wrap(instr)
 
                 elif major == 0x0f:
-                    self._call_flag(self.get_flag_pv(), 'P')
+                    self._call_wrap(instr)
 
                 else:
                     self.ui(instr)
@@ -341,16 +434,16 @@ class z80:
 
             elif minor == 0x08:
                 if major == 0x0c:
-                    self._ret(self.get_flag_z(), 'Z')
+                    self._ret_wrap(instr)
 
                 elif major == 0x0d:
-                    self._ret(self.get_flag_c(), 'C')
+                    self._ret_wrap(instr)
 
                 elif major == 0x0e:
-                    self._ret(not self.get_flag_s(), 'P')
+                    self._ret_wrap(instr)
 
                 elif major == 0x0f:
-                    self._ret(self.get_flag_s(), 'M')
+                    self._ret_wrap(instr)
 
                 else:
                     self.ui(instr)
@@ -373,16 +466,16 @@ class z80:
 
             elif minor == 0x0a:
                 if major == 0x0c:  # JP Z,**
-                    self._jp(self.get_flag_z(), 'Z')
+                    self._jp_wrap(instr)
 
                 elif major == 0x0d:  # JP c,**
-                    self._jp(self.get_flag_c(), 'C')
+                    self._jp_wrap(instr)
 
                 elif major == 0x0e:  # JP pe,**
-                    self._jp(self.get_flag_pv(), 'PE')
+                    self._jp_wrap(instr)
 
                 elif major == 0x0f:  # JP M,**
-                    self._jp(self.get_flag_s(), 'M')
+                    self._jp_wrap(instr)
 
                 else:
                     self.ui(instr)
@@ -405,16 +498,16 @@ class z80:
 
             elif minor == 0x0c:
                 if major == 0x0c:  # CALL Z,**
-                    self._call_flag(self.get_flag_z(), 'Z')
+                    self._call_wrap(instr)
 
                 elif major == 0x0d:  # CALL C,**
-                    self._call_flag(self.get_flag_c(), 'C')
+                    self._call_wrap(instr)
 
                 elif major == 0x0e:  # CALL PE,**
-                    self._call_flag(self.get_flag_pv(), 'PE')
+                    self._call_wrap(instr)
 
                 elif major == 0x0f:  # CALL M,**
-                    self._call_flag(self.get_flag_s(), 'M')
+                    self._call_wrap(instr)
 
                 else:
                     self.ui(instr)
@@ -952,7 +1045,8 @@ class z80:
 
         self.debug('LD %s, %s [%02x]' % (tgt_name, src_name, val))
 
-    def _ld_pair(self, which):
+    def _ld_pair(self, instr):
+        which = instr >> 4
         val = self.read_pc_inc_16()
         name = self.set_pair(which, val)
 
@@ -1014,7 +1108,7 @@ class z80:
         else:
             self.debug('JR %s,0x%04x NOT TAKEN' % (flag_name, self.pc))
 
-    def _djnz(self):
+    def _djnz(self, instr):
         offset = self.compl8(self.read_pc_inc())
 
         self.b -= 1
@@ -1621,7 +1715,8 @@ class z80:
         self.a &= 0xff
         self.debug('ADD A, 0x%02d [%02x]' % (v, self.a))
 
-    def _ld_pair_from_a(self, which):
+    def _ld_pair_from_a(self, instr):
+        which = instr >> 4
         if which == 0:  # (BC) = a
             self.write_mem(self.m16(self.b, self.c), self.a)
             self.debug('LD (BC),A')
@@ -1631,7 +1726,8 @@ class z80:
         else:
             assert False
 
-    def _ld_imem_from(self, which):
+    def _ld_imem_from(self, instr):
+        which = instr >> 4
         if which == 2:  # LD (**), HL
             a = self.read_pc_inc_16()
             self.write_mem(a, self.l)
