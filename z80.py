@@ -123,36 +123,36 @@ class z80:
                     self.ui(instr)
 
             elif minor == 0x03:
-                self._inc_pair(major)
+                self._inc_pair(instr)
 
             elif minor == 0x04:
-                self._inc_high(major)
+                self._inc_high(instr)
 
             elif minor == 0x05:
-                self._dec_high(major)
+                self._dec_high(instr)
 
             elif minor == 0x06:
-                self._ld_val_high(major)
+                self._ld_val_high(instr)
 
             elif minor == 0x07:
                 if major == 0:
-                    self._rlca()
+                    self._rlca(instr)
 
                 elif major == 0x01:
-                    self._rla()
+                    self._rla(instr)
 
                 elif major == 0x02:
-                    self._daa()
+                    self._daa(instr)
 
                 elif major == 0x03:
-                    self._scf()
+                    self._scf(instr)
 
                 else:
                     self.ui(instr)
 
             elif minor == 0x08:
                 if major == 0:
-                    self._ex_af()
+                    self._ex_af(instr)
 
                 elif major == 1:
                     self._jr(True, '')
@@ -171,38 +171,38 @@ class z80:
 
             elif minor == 0x0a:
                 if major == 0x00 or major == 0x01:
-                    self._ld_a_imem(major)
+                    self._ld_a_imem(instr)
 
                 elif major == 0x02 or major == 0x03:
-                    self._ld_imem(major)
+                    self._ld_imem(instr)
 
                 else:
                     self.ui(instr)
 
             elif minor == 0x0b:
-                self._dec_pair(major)
+                self._dec_pair(instr)
 
             elif minor == 0x0c:
-                self._inc_low(major)
+                self._inc_low(instr)
 
             elif minor == 0x0d:
-                self._dec_low(major)
+                self._dec_low(instr)
 
             elif minor == 0x0e:
-                self._ld_val_low(major)
+                self._ld_val_low(instr)
 
             elif minor == 0x0f:
                 if major == 0x00:
-                    self._rrca()
+                    self._rrca(instr)
 
                 elif major == 0x01:
                     self._rr(7)
 
                 elif major == 0x02:  # CPL
-                    self._cpl()
+                    self._cpl(instr)
 
                 elif major == 0x03:
-                    self._ccf()
+                    self._ccf(instr)
 
                 else:
                     self.ui(instr)
@@ -214,24 +214,24 @@ class z80:
             self._ld(instr)
 
         elif major == 0x08:  # ADD/ADC
-            self._add(minor2, minor1)
+            self._add(instr)
 
         elif major == 0x09:  # SUB/SBC
-            self._sub(minor2, minor1)
+            self._sub(instr)
 
         elif major == 0x0a:  # AND/XOR
             if minor1:
-                self._xor(minor2)
+                self._xor(instr)
 
             else:
-                self._and(minor2)
+                self._and(instr)
 
         elif major == 0x0b:  # OR/CP
             if minor1:
-                self._cp(minor2)
+                self._cp(instr)
 
             else:
-                self._or(minor2)
+                self._or(instr)
 
         elif major >= 0x0c:
             if minor == 0x00:
@@ -251,7 +251,7 @@ class z80:
                     self.ui(instr)
 
             elif minor == 0x01:
-                self._pop(major - 0x0c)
+                self._pop(instr)
 
             elif minor == 0x02:
                 if major == 0x0c:
@@ -274,13 +274,13 @@ class z80:
                     self._jp(True, None)
 
                 elif major == 0x0d:  # OUT (*), a
-                    self._out()
+                    self._out(instr)
 
                 elif major == 0x0e:  # EX (SP),HL
-                    self._ex_sp_hl()
+                    self._ex_sp_hl(instr)
 
                 elif major == 0x0f:  # DI
-                    self._di()
+                    self._di(instr)
 
                 else:
                     self.ui(instr)
@@ -302,26 +302,26 @@ class z80:
                     self.ui(instr)
 
             elif minor == 0x05:  # PUSH
-                self._push(major - 0x0c)
+                self._push(instr)
 
             elif minor == 0x06:
                 if major == 0x0c:  # ADD A, *
-                    self._add_a_val(False)
+                    self._add_a_val(instr)
 
                 elif major == 0x0d:  # SUB *
-                    self._sub_val(False)
+                    self._sub_val(instr)
 
                 elif major == 0x0e:  # AND *
-                    self._and_val()
+                    self._and_val(instr)
 
                 elif major == 0x0f:  # OR *
-                    self._or_val()
+                    self._or_val(instr)
 
                 else:
                     self.ui(instr)
 
             elif minor == 0x07:
-                self._rst(minor1, major - 0x0c)
+                self._rst(instr)
 
             elif minor == 0x08:
                 if major == 0x0c:
@@ -341,16 +341,16 @@ class z80:
 
             elif minor == 0x09:
                 if major == 0x0c:  # RET
-                    self._ret_always()
+                    self._ret_always(instr)
 
                 elif major == 0x0d:  # EXX
-                    self._exx()
+                    self._exx(instr)
 
                 elif major == 0x0e:
-                    self._jp_hl()
+                    self._jp_hl(instr)
 
                 elif major == 0x0f:  # LD SP, HL
-                    self._ld_sp_hl()
+                    self._ld_sp_hl(instr)
 
                 else:
                     self.ui(instr)
@@ -373,16 +373,16 @@ class z80:
 
             elif minor == 0x0b:
                 if major == 0x0c:  # BITS
-                    self.bits()
+                    self.bits(instr)
 
                 elif major == 0x0d:  # IN A,(*)
-                    self._in()
+                    self._in(instr)
 
                 elif major == 0x0e:  # EX DE, HL
-                    self._ex_de_hl()
+                    self._ex_de_hl(instr)
 
                 elif major == 0x0f:  # EI
-                    self._ei()
+                    self._ei(instr)
 
                 else:
                     self.ui(instr)
@@ -405,38 +405,38 @@ class z80:
 
             elif minor == 0x0d:
                 if major == 0x0c:  # CALL
-                    self._call()
+                    self._call(instr)
 
                 elif major == 0x0d:
-                    self._ix()
+                    self._ix(instr)
 
                 elif major == 0x0e:
-                    self._ed()
+                    self._ed(instr)
 
                 elif major == 0x0f:
-                    self._iy()
+                    self._iy(instr)
 
                 else:
                     self.ui(instr)
 
             elif minor == 0x0e:
                 if major == 0x0c:
-                    self._add_a_val(True)
+                    self._add_a_val(instr)
 
                 elif major == 0x0d:
-                    self._sub_val(True)
+                    self._sub_val(instr)
 
                 elif major == 0x0e:
-                    self._xor_mem()
+                    self._xor_mem(instr)
 
                 elif major == 0x0f:
-                    self._cp_mem()
+                    self._cp_mem(instr)
 
                 else:
                     self.ui(instr)
 
             elif minor == 0x0f:
-                self._rst(minor1, major - 0x0c)
+                self._rst(instr)
 
             else:
                 self.ui(instr)
@@ -656,7 +656,7 @@ class z80:
 
         return out
 
-    def bits(self):
+    def bits(self, dummy):
         try:
             instr = self.read_pc_inc()
             self.debug('bits: %02x' % instr)
@@ -715,7 +715,10 @@ class z80:
 
         self.set_flag_h((((before & 0x0f) + (value & 0x0f)) & 0x10) != 0)
 
-    def _add(self, src, c):
+    def _add(self, instr):
+        c = instr & 8
+        src = instr & 7
+
         (val, name) = self.get_src(src)
         old_val = val
 
@@ -739,7 +742,8 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(False)
 
-    def _or(self, src):
+    def _or(self, instr):
+        src = instr & 7
         (val, name) = self.get_src(src)
         self.a |= val
 
@@ -747,7 +751,7 @@ class z80:
 
         self.debug('OR %s' % name)
 
-    def _or_val(self):
+    def _or_val(self, instr):
         v = self.read_pc_inc()
         self.a |= v
 
@@ -763,7 +767,8 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(True)
 
-    def _and(self, src):
+    def _and(self, instr):
+        src = instr & 7
         (val, name) = self.get_src(src)
         self.a &= val
 
@@ -771,7 +776,7 @@ class z80:
 
         self.debug('AND %s' % name)
 
-    def _and_val(self):
+    def _and_val(self, instr):
         v = self.read_pc_inc()
         self.a &= v
 
@@ -787,7 +792,8 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(False)
 
-    def _xor(self, src):
+    def _xor(self, instr):
+        src = instr & 7
         (val, name) = self.get_src(src)
 
         self.a ^= val
@@ -796,7 +802,7 @@ class z80:
 
         self.debug('XOR %s' % name)
 
-    def _xor_mem(self):
+    def _xor_mem(self, instr):
         val = self.read_pc_inc()
 
         self.a ^= val
@@ -805,7 +811,7 @@ class z80:
 
         self.debug('XOR %02x' % val)
 
-    def _out(self):
+    def _out(self, instr):
         a = self.read_pc_inc()
         self.out(a, self.a)
         self.debug('OUT (0x%02x), A [%02x]' % (a, self.a))
@@ -854,7 +860,8 @@ class z80:
 
         self.debug('SRA %s' % name)
 
-    def _ld_val_low(self, which):
+    def _ld_val_low(self, instr):
+        which = instr >> 4
         val = self.read_pc_inc()
 
         if which == 0:
@@ -874,7 +881,8 @@ class z80:
 
         self.debug('LD %s, 0x%02x' % (name, val))
 
-    def _ld_val_high(self, which):
+    def _ld_val_high(self, instr):
+        which = instr >> 4
         val = self.read_pc_inc()
         assert val >= 0 and val <= 255
 
@@ -946,14 +954,16 @@ class z80:
         else:
             self.debug('JP 0x%04x' % a)
 
-    def _call(self):
+    def _call(self, instr):
         a = self.read_pc_inc_16()
         self.push(self.pc)
         self.pc = a
 
         self.debug('CALL 0x%04x' % a)
 
-    def _push(self, which):
+    def _push(self, instr):
+        which = (instr >> 4) - 0x0c
+
         if which == 3:
             v = self.m16(self.a, self.f)
             name = 'AF'
@@ -965,7 +975,8 @@ class z80:
 
         self.debug('PUSH %s' % name)
 
-    def _pop(self, which):
+    def _pop(self, instr):
+        which = (instr >> 4) - 0x0c
         v = self.pop()
 
         if which == 3:
@@ -1000,7 +1011,7 @@ class z80:
         else:
             self.debug('DJNZ 0x%04x NOT TAKEN' % self.pc)
 
-    def _cpl(self):
+    def _cpl(self, instr):
         self.a ^= 0xff
 
         self.set_flag_n(True)
@@ -1026,7 +1037,8 @@ class z80:
 
         self.set_flag_h((((before & 0x0f) - (value & 0x0f)) & 0x10) != 0)
 
-    def _cp(self, src):
+    def _cp(self, instr):
+        src = instr & 7
         (val, name) = self.get_src(src)
 
         temp = self.a - val
@@ -1041,7 +1053,10 @@ class z80:
 
         return result & 0xff
 
-    def _sub(self, src, c):
+    def _sub(self, instr):
+        c = instr & 8
+        src = instr & 7
+
         (val, name) = self.get_src(src)
 
         if c:
@@ -1051,14 +1066,16 @@ class z80:
 
         self.debug('%s %s [%02x]' % ('SBC' if c else 'SUB', name, val))
 
-    def _sub_val(self, use_c):
+    def _sub_val(self, instr):
+        use_c = instr == 0xde
         v = self.read_pc_inc()
         if use_c:
             v += self.get_flag_c()
         self.a = self.sub(v)
         self.debug('SUB 0x%02x' % v)
 
-    def _inc_pair(self, which):
+    def _inc_pair(self, instr):
+        which = instr >> 4
         (v, name) = self.get_pair(which)
 
         v += 1
@@ -1078,7 +1095,8 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(not (after & 0x0F))
 
-    def _inc_high(self, which):
+    def _inc_high(self, instr):
+        which = instr >> 4
         if which == 0:
             self.inc_flags(self.b)
             self.b = (self.b + 1) & 0xff
@@ -1102,7 +1120,8 @@ class z80:
 
         self.debug('INC %s' % name)
 
-    def _inc_low(self, which):
+    def _inc_low(self, instr):
+        which = instr >> 4
         if which == 0:
             self.inc_flags(self.c)
             self.c = (self.c + 1) & 0xff
@@ -1169,7 +1188,8 @@ class z80:
 
         self.debug('ADD HL, %s' % name)
 
-    def _dec_pair(self, which):
+    def _dec_pair(self, instr):
+        which = instr >> 4
         (v, name) = self.get_pair(which)
         v -= 1
         v &= 0xffff
@@ -1186,7 +1206,9 @@ class z80:
         self.set_flag_n(True)
         self.set_flag_h((after & 0x0f) == 0x0f)
 
-    def _dec_high(self, which):
+    def _dec_high(self, instr):
+        which = instr >> 4
+
         if which == 0:
             self.dec_flags(self.b)
             self.b = (self.b - 1) & 0xff
@@ -1210,7 +1232,8 @@ class z80:
 
         self.debug('INC x')
 
-    def _dec_low(self, which):
+    def _dec_low(self, instr):
+        which = instr >> 4
         if which == 0:
             self.dec_flags(self.c)
             self.c = (self.c - 1) & 0xff
@@ -1234,7 +1257,10 @@ class z80:
 
 #--- flags
 
-    def _rst(self, un, which):
+    def _rst(self, instr):
+        un = instr & 8
+        which = (instr >> 4) - 0x0c
+
         self.push(self.pc)
 
         if un:
@@ -1245,12 +1271,13 @@ class z80:
 
         self.debug('RST %02x' % self.pc)
 
-    def _ex_de_hl(self):
+    def _ex_de_hl(self, instr):
         self.d, self.h = self.h, self.d
         self.e, self.l = self.l, self.e
         self.debug('EX DE,HL')
 
-    def _ld_a_imem(self, which):
+    def _ld_a_imem(self, instr):
+        which = instr >> 4
         if which == 0:
             self.a = self.read_mem(self.m16(self.b, self.c))
             self.debug('LD A,(BC)')
@@ -1262,7 +1289,8 @@ class z80:
         else:
             assert False
 
-    def _ld_imem(self, which):
+    def _ld_imem(self, instr):
+        which = instr >> 4
         if which == 2:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
@@ -1277,7 +1305,7 @@ class z80:
         else:
             assert False
 
-    def _exx(self):
+    def _exx(self, instr):
         self.b, self.b_ = self.b_, self.b
         self.c, self.c_ = self.c_, self.c
         self.d, self.d_ = self.d_, self.d
@@ -1286,7 +1314,7 @@ class z80:
         self.l, self.l_ = self.l_, self.l
         self.debug('EXX')
 
-    def _ex_af(self):
+    def _ex_af(self, instr):
         self.a, self.a_ = self.a_, self.a
         self.f, self.f_ = self.f_, self.f
         self.debug('EX AF')
@@ -1398,7 +1426,7 @@ class z80:
         self.ixy_jumps[0xe9] = self._jp_ixy
         self.ixy_jumps[0xf9] = self._ld_sp_ixy
 
-    def _ix(self):
+    def _ix(self, dummy):
         try:
             instr = self.read_pc_inc()
             self.debug('IX: %02x' % instr)
@@ -1408,7 +1436,7 @@ class z80:
             self.debug('TypeError IX(%02x): %s' % (instr, te))
             assert False
 
-    def _iy(self):
+    def _iy(self, dummy):
         try:
             instr = self.read_pc_inc()
             self.debug('IY: %02x' % instr)
@@ -1461,7 +1489,7 @@ class z80:
             self.debug('TypeError IXY_BIT(%02x): %s' % (instr, te))
             assert False
 
-    def _ed(self):
+    def _ed(self, dummy):
         try:
             instr = self.read_pc_inc()
             self.debug('EXT: %02x' % instr)
@@ -1554,16 +1582,17 @@ class z80:
         self.a = self.r
         self.debug('LD A,R')
 
-    def _in(self):
+    def _in(self, instr):
         a = self.read_pc_inc()
         self.a = self.in_(a)
         self.debug('IN A, (0x%02x) [%02x]' % (a, self.a))
 
-    def _ld_sp_hl(self):
+    def _ld_sp_hl(self, instr):
         self.sp = self.m16(self.h, self.l)
         self.debug('LD SP, HL [%04x]' % self.sp)
 
-    def _add_a_val(self, use_c):
+    def _add_a_val(self, instr):
+        use_c = instr == 0xce
         v = self.read_pc_inc()
         old_val = self.a
         self.a += v
@@ -1599,7 +1628,7 @@ class z80:
         else:
             assert False
 
-    def _rlca(self):
+    def _rlca(self, instr):
         self.set_flag_n(False)
         self.set_flag_h(False)
 
@@ -1616,7 +1645,7 @@ class z80:
 
         self.debug('RLCA')
 
-    def _rla(self):
+    def _rla(self, instr):
         self.set_flag_n(False)
         self.set_flag_h(False)
 
@@ -1694,7 +1723,7 @@ class z80:
 
         self.debug('RLC (%s + 0x%02x), %s' % (name, offset, dst_name))
 
-    def _cp_mem(self):
+    def _cp_mem(self, instr):
         val = self.read_pc_inc()
 
         temp = self.a - val
@@ -1800,7 +1829,7 @@ class z80:
 
         self.debug('IM %d' % self.im)
 
-    def _ret_always(self):
+    def _ret_always(self, instr):
         self.pc = self.pop()
 
         self.debug('RET')
@@ -1820,12 +1849,12 @@ class z80:
 
         self.debug('CALL %s,0x%04x' % (flag_name, a))
 
-    def _scf(self):
+    def _scf(self, instr):
         self.set_flag_c(True)
         self.set_flag_n(False)
         self.set_flag_h(False)
 
-    def _ex_sp_hl(self):
+    def _ex_sp_hl(self, instr):
         hl = self.m16(self.h, self.l)
         org_sp_deref = self.read_mem_16(self.sp)
         self.write_mem_16(self.sp, hl)
@@ -1834,7 +1863,7 @@ class z80:
 
         self.debug('EX (SP),HL')
 
-    def _rrca(self):
+    def _rrca(self, instr):
         self.set_flag_n(False)
         self.set_flag_h(False)
 
@@ -1846,15 +1875,15 @@ class z80:
 
         self.debug('RRCA')
 
-    def _di(self):
+    def _di(self, instr):
         self.interrupts = False
         self.debug('DI')
 
-    def _ei(self):
+    def _ei(self, instr):
         self.interrupts = True
         self.debug('EI')
 
-    def _ccf(self):
+    def _ccf(self, instr):
         self.set_flag_c(not self.get_flag_c())
         self.set_flag_n(False)
         self.set_flag_h(False)
@@ -2262,7 +2291,7 @@ class z80:
         self.debug('ADD A,(%s+*)' % name)
 
     # from https://stackoverflow.com/questions/8119577/z80-daa-instruction/8119836
-    def _daa(self):
+    def _daa(self, instr):
         t = 0
 
         if self.get_flag_h() or (self.a & 0x0f) > 9:
@@ -2298,7 +2327,7 @@ class z80:
 
         self.debug('DAA')
 
-    def _jp_hl(self):
+    def _jp_hl(self, instr):
         self.pc = self.m16(self.h, self.l)
 
         self.debug('JP (HL)')

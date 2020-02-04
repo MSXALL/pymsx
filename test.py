@@ -1210,23 +1210,23 @@ def test_push_pop():
     cpu.b = 0x12
     cpu.c = 0x34
     cpu.sp = 0x3fff
-    cpu._push(0) # 0xc0 PUSH BC
+    cpu._push(0xc0) # PUSH BC
     my_assert(cpu.sp == 0x3ffd)
     my_assert(cpu.read_mem_16(0x3ffd) == 0x1234)
     cpu.a = 0xaa
     cpu.f = 0xbb
-    cpu._push(3) # 0xf0 PUSH AF
-    cpu._push(1) # 0xc0 PUSH DE => 0xffff
+    cpu._push(0xf0) # PUSH AF
+    cpu._push(0xd0) # PUSH DE => 0xffff
 
-    cpu._pop(3) # POP
+    cpu._pop(0xf0) # POP
     my_assert(cpu.a == 0xff)
     my_assert(cpu.f == 0xff)
-    cpu._pop(0)
+    cpu._pop(0xc0)
     my_assert(cpu.b == 0xaa)
     my_assert(cpu.c == 0xbb)
     cpu.d = 0x50
     cpu.e = 0x50
-    cpu._pop(1)
+    cpu._pop(0xd0)
     my_assert(cpu.d == 0x12)
     my_assert(cpu.e == 0x34)
 
