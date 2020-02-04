@@ -81,12 +81,17 @@ class screen_kb_pygame(screen_kb):
                 cache = None
 
                 hit = 0
+                tiles_offset = colors_offset = 0
 
                 for map_index in range(0, 32 * 24):
                     block_nr    = (map_index >> 8) & 3
+
                     if block_nr != pb:
                         cache = [ None ] * 256
                         pb = block_nr
+
+                        tiles_offset = bg_tiles  + (block_nr * 256 * 8)
+                        colors_offset = bg_colors + (block_nr * 256 * 8)
 
                     cur_char_nr = self.ram[bg_map + map_index]
 
@@ -96,8 +101,8 @@ class screen_kb_pygame(screen_kb):
                     if cache[cur_char_nr] == None:
                         cache[cur_char_nr] = [ 0 ] * 64
 
-                        cur_tiles   = bg_tiles  + (block_nr * 256 * 8) + (cur_char_nr * 8)
-                        cur_colors  = bg_colors + (block_nr * 256 * 8) + (cur_char_nr * 8)
+                        cur_tiles   = tiles_offset + cur_char_nr * 8
+                        cur_colors  = colors_offset + cur_char_nr * 8
 
                         for y in range(0, 8):
                             current_tile = self.ram[cur_tiles]
