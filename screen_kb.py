@@ -21,14 +21,14 @@ class screen_kb(threading.Thread):
         self.vdp_read_ahead = 0
         self.io = io
 
-        self.init_kb()
-        self.init_screen()
-
         self.keyboard_queue = []
         self.k_lock = threading.Lock()
 
         self.debug_msg = None
         self.debug_msg_lock = threading.Lock()
+
+        self.init_kb()
+        self.init_screen()
 
         super(screen_kb, self).__init__()
 
