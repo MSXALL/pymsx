@@ -72,6 +72,35 @@ class z80:
         high = self.read_pc_inc()
         return self.m16(high, low)
 
+    def flags_add_sub_cp(self, is_sub, carry, value):
+        result = 0
+
+        if is_sub:
+            self.set_flag_n(True)
+            self.set_flag_h((((self.h & 0x0F) - (value & 0x0F)) & 0x10) != 0)
+
+            result = self.a - (value + (self.get_flag_c() if carry else 0))
+
+        else:
+            self.set_flag_n(False)
+            self.set_flag_h((((self.h & 0x0F) + (value & 0x0F)) & 0x10) != 0)
+
+            result = self.a + value + (self.get_flag_c() if carry else 0)
+
+        self.set_flag_c((result & 0x100) != 0)
+
+        before_sign = self.a & 0x80
+        value_sign = value & 0x80
+        after_sign = result & 0x80
+        self.set_flag_pv(after_sign != before_sign and ((before_sign != value_sign and is_sub) or (before_sign == value_sign and not is_sub)))
+
+        result &= 0xff
+
+        self.set_flag_z(result == 0)
+        self.set_flag_s(after_sign != 0)
+
+        return result
+
     def _jr_wrapper(self, instr):
         if instr == 0x18:
             self._jr(True, '')
@@ -753,38 +782,12 @@ class z80:
 
         return out
 
-    def set_add_flags(self, before, value, after):
-        self.set_flag_c((after & 0x100) != 0)
-
-        self.set_flag_z(after == 0)
-
-        before = self.compl8(before)
-        value = self.compl8(value)
-        after = self.compl8(after & 0xff)
-        self.set_flag_pv((before >= 0 and value >= 0 and after < 0) or (before < 0 and value < 0 and after >= 0))
-
-        self.set_flag_s((after & 128) == 128)
-
-        self.set_flag_n(False)
-
-        self.set_flag_h((((before & 0x0f) + (value & 0x0f)) & 0x10) != 0)
-
     def _add(self, instr):
         c = instr & 8
         src = instr & 7
 
         (val, name) = self.get_src(src)
-        old_val = val
-
-        to_add = val
-        if c:
-            to_add += self.get_flag_c()
-
-        result = self.a + to_add
-
-        self.set_add_flags(val, to_add, result)
-
-        self.a = result & 0xff
+        self.a = self.flags_add_sub_cp(False, c, val)
 
         self.debug('%s %s' % ('ADC' if c else 'ADD', name))
 
@@ -1074,39 +1077,13 @@ class z80:
 
         self.debug('CPL')
 
-    def set_sub_flags(self, before, value, after):
-        self.set_flag_c((after & 0x100) != 0)
-
-        self.set_flag_z(after == 0)
-
-        self.set_flag_pv((before < 0 and value >= 0 and after >= 0) or (before >= 0 and value < 0 and after < 0))
-
-        before_sign = self.a & 0x80
-        value_sign = value & 0x80
-        after_sign = after & 0x80
-        self.set_flag_pv(before_sign != value_sign and after_sign != before_sign)
-
-        self.set_flag_s((after & 128) == 128)
-
-        self.set_flag_n(True)
-
-        self.set_flag_h((((before & 0x0f) - (value & 0x0f)) & 0x10) != 0)
-
     def _cp(self, instr):
         src = instr & 7
         (val, name) = self.get_src(src)
 
-        temp = self.a - val
-        self.set_sub_flags(self.a, val, temp)
+        self.flags_add_sub_cp(True, False, val)
 
         self.debug('CP %s' % name)
-
-    def sub(self, val):
-        result = self.a - val
-
-        self.set_sub_flags(self.a, val, result)
-
-        return result & 0xff
 
     def _sub(self, instr):
         c = instr & 8
@@ -1114,20 +1091,17 @@ class z80:
 
         (val, name) = self.get_src(src)
 
-        if c:
-            val += self.get_flag_c()
-
-        self.a = self.sub(val)
+        self.a = self.flags_add_sub_cp(True, c == 8, val)
 
         self.debug('%s %s [%02x]' % ('SBC' if c else 'SUB', name, val))
 
     def _sub_val(self, instr):
-        use_c = instr == 0xde
+        c = instr == 0xde
         v = self.read_pc_inc()
-        if use_c:
-            v += self.get_flag_c()
-        self.a = self.sub(v)
-        self.debug('SUB 0x%02x' % v)
+
+        self.a = self.flags_add_sub_cp(True, c, v)
+
+        self.debug('%s 0x%02x' % ('SBC' if c else 'SUB', v))
 
     def _inc_pair(self, instr):
         which = instr >> 4
@@ -1411,17 +1385,13 @@ class z80:
     def _add_a_ixy_h(self, instr, is_x):
         org = self.a
         v = (self.ix if is_x else self.iy) >> 8
-        self.a += v
-        self.set_add_flags(org, v, self.a)
-        self.a &= 0xff
+        self.a = self.flags_add_sub_cp(False, False, v)
         self.debug('ADD A,I%sH' % 'X' if is_ix else 'Y')
 
     def _add_a_ixy_l(self, instr, is_x):
         org = self.a
         v = (self.ix if is_x else self.iy) & 255
-        self.a += v
-        self.set_add_flags(org, v, self.a)
-        self.a &= 0xff
+        self.a = self.flags_add_sub_cp(False, False, v)
         self.debug('ADD A,I%sL' % 'X' if is_ix else 'Y')
 
     def _dec_ixy(self, instr, is_x):
@@ -1578,15 +1548,9 @@ class z80:
     def _add_a_val(self, instr):
         use_c = instr == 0xce
         v = self.read_pc_inc()
-        old_val = self.a
-        self.a += v
 
-        if use_c:
-            self.a += self.get_flag_c()
+        self.a = self.flags_add_sub_cp(False, use_c, v)
 
-        self.set_add_flags(old_val, v, self.a)
-
-        self.a &= 0xff
         self.debug('ADD A, 0x%02d [%02x]' % (v, self.a))
 
     def _ld_pair_from_a(self, instr):
@@ -1767,12 +1731,11 @@ class z80:
         self.debug('RL (%s + 0x%02x), %s' % (name, offset, dst_name))
 
     def _cp_mem(self, instr):
-        val = self.read_pc_inc()
+        v = self.read_pc_inc()
 
-        temp = self.a - val
-        self.set_sub_flags(self.a, val, temp)
+        self.flags_add_sub_cp(True, False, v)
 
-        self.debug('CP 0x%02x' % val)
+        self.debug('CP 0x%02x' % v)
 
     def _lddr(self, instr):
         self.set_flag_n(False)
@@ -2354,13 +2317,10 @@ class z80:
         ixy = self.ix if is_ix else self.iy
         a = (ixy + offset) & 0xffff
         name = 'IX' if is_ix else 'IY'
-        old_val = self.a
 
         v = self.read_mem(a)
 
-        self.a += v
-        self.set_add_flags(old_val, v, self.a)
-        self.a &= 0xff
+        self.a = self.flags_add_sub_cp(False, False, v)
 
         self.debug('ADD A,(%s+*)' % name)
 

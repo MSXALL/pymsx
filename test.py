@@ -741,15 +741,19 @@ def test__support():
     # SUB flags
     cpu.reset()
     cpu.f = 0
-    cpu.set_sub_flags(0xf0, 0x21, 0xf0 - 0x21)
+    cpu.a = 0xf0
+    print(cpu.flags_add_sub_cp(True, False, 0x21))
+    my_assert(cpu.flags_add_sub_cp(True, False, 0x21) == 0xf0 - 0x21)
     my_assert(cpu.f == (0xb2 & 0xd7))
 
     cpu.f = 0
-    cpu.set_sub_flags(0xf0, 0xf0, 0)
+    cpu.a = 0xf0
+    my_assert(cpu.flags_add_sub_cp(True, False, 0xf0) == 0xf0 - 0xf0)
     my_assert(cpu.f == (0x62 & 0xd7))
 
     cpu.f = 0
-    cpu.set_sub_flags(0x01, 0xa0, 0x01 - 0xa0)
+    cpu.a = 0x01
+    my_assert(cpu.flags_add_sub_cp(True, False, 0xa0) == (0x01 - 0xa0) & 0xff)
     my_assert(cpu.f == (0x23 & 0xd7))
 
     # ADD flags
