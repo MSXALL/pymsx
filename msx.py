@@ -30,9 +30,9 @@ def debug(x):
     print('%s <%02x/%02x>' % (x, io[0xa8], subpage), file=sys.stderr)
 
 scc_sig = None
-scc_rom_file = 'md1.rom'
-scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
-scc_sig = scc_obj.get_signature() if scc_obj else None
+#scc_rom_file = 'md1.rom'
+#scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
+#scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
 #disk_rom_file = 'FSFD1.ROM'
@@ -41,9 +41,9 @@ disk_sig = None
 #disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
-#gen_rom_file = None
-#gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
-#gen_sig = gen_obj.get_signature() if gen_obj else None
+gen_rom_file = '../../msx/trunk/docs/testram.rom'
+gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
+gen_sig = gen_obj.get_signature() if gen_obj else None
 
 subpage = 0x00
 

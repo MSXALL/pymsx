@@ -1494,6 +1494,7 @@ class z80:
         self.ed_jumps[0x69] = self._out_c_high
         self.ed_jumps[0x6a] = self._adc_pair
         self.ed_jumps[0x6b] = self._ld_pair_mem
+        self.ed_jumps[0x6f] = self._rld
         self.ed_jumps[0x71] = self._out_c_low
         self.ed_jumps[0x72] = self._sbc_pair
         self.ed_jumps[0x73] = self._ld_mem_pair
@@ -1508,7 +1509,32 @@ class z80:
         self.ed_jumps[0xb0] = self._ldir
         self.ed_jumps[0xb1] = self._cpir
         self.ed_jumps[0xb3] = self._otir
+        self.ed_jumps[0xb8] = self._lddr
         self.ed_jumps[0xb9] = self._cpdr
+
+    def _rld(self, instr):
+        a = self.m16(self.h, self.l)
+        v_hl = self.read_mem(a)
+
+        ln_hl = v_hl & 15
+        hn_hl = v_hl >> 4
+
+        ln_a = self.a & 15
+        hn_a = self.a >> 4
+
+        new_hl = (ln_hl << 4) | ln_a
+        new_a = (hn_a << 4) | ln_hl
+
+        self.write_mem(a, new_hl)
+        self.a = new_a
+        
+        self.set_flag_h(False)
+        self.set_flag_n(False)
+        self.set_flag_pv(self.parity(new_hl))
+        self.set_flag_z(new_hl == 0)
+        self.set_flag_z((new_hl & 0x80) == 0x80)
+
+        self.debug('RLD')
 
     def _ld_i_a(self, instr):
         self.i = self.a
@@ -1676,6 +1702,37 @@ class z80:
         self.set_sub_flags(self.a, val, temp)
 
         self.debug('CP 0x%02x' % val)
+
+    def _lddr(self, instr):
+        self.set_flag_n(False)
+        self.set_flag_pv(False)
+        self.set_flag_h(False)
+
+        bc = self.m16(self.b, self.c)
+        de = self.m16(self.d, self.e)
+        hl = self.m16(self.h, self.l)
+
+        while True:
+            v = self.read_mem(hl)
+            self.write_mem(de, v)
+
+            hl -= 1
+            hl &= 0xffff
+
+            de -= 1
+            de &= 0xffff
+
+            bc -= 1
+            bc &= 0xffff
+
+            if bc == 0:
+                break
+
+        (self.b, self.c) = self.u16(bc)
+        (self.d, self.e) = self.u16(de)
+        (self.h, self.l) = self.u16(hl)
+        
+        self.debug('LDDR')
 
     def _ldir(self, instr):
         self.set_flag_n(False)
