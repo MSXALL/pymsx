@@ -175,6 +175,54 @@ class screen_kb_pygame(screen_kb):
                 pygame.surfarray.blit_array(self.screen, self.arr)
                 pygame.display.flip()
 
+            elif vm == 0:  # 'screen 1' (32 x 24)
+                bg_map    = (self.registers[2] &  15) << 10;
+                bg_colors = (self.registers[3] & 128) <<  6
+                bg_tiles  = (self.registers[4] &   4) << 11
+
+                cols = 32
+                hitdiv = cols * 24
+
+                par = pygame.PixelArray(self.surface)
+
+                pb = None
+                cache = [ None ] * 256
+
+                tiles_offset = colors_offset = 0
+
+                for map_index in range(0, 32 * 24):
+                    cur_char_nr = self.ram[bg_map + map_index]
+
+                    current_color = self.ram[bg_colors + cur_char_nr // 8]
+                    fg = self.rgb[current_color >> 4];
+                    bg = self.rgb[current_color & 15];
+
+                    scr_x = (map_index % cols) * 8;
+                    scr_y = (map_index // cols) * 8;
+
+                    if cache[cur_char_nr] == None:
+                        cache[cur_char_nr] = [ 0 ] * 64
+
+                        cur_tiles = bg_tiles + cur_char_nr * 8
+
+                        for y in range(0, 8):
+                            current_tile = self.ram[cur_tiles]
+                            cur_tiles += 1
+
+                            for x in range(0, 8):
+                                cache[cur_char_nr][y * 8 + x] = fg if (current_tile & 128) == 128 else bg
+                                current_tile <<= 1
+                    else:
+                        hit += 1
+
+                    for y in range(0, 8):
+                        for x in range(0, 8):
+                            self.arr[scr_x + x, scr_y + y] = cache[cur_char_nr][y * 8 + x]
+
+                pygame.surfarray.blit_array(self.screen, self.arr)
+                pygame.display.flip()
+                par = pygame.PixelArray(self.surface)
+
             else:
                 msg = 'Unsupported resolution'
 
