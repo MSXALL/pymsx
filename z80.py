@@ -20,8 +20,6 @@ class z80:
 
         self.reset()
 
-        self.counts = [ 0 ] * 256
-
     def debug(self, x):
         self.debug_out(x)
         self.debug_out(self.reg_str())
@@ -381,8 +379,6 @@ class z80:
             self.pc = 0x38
 
         instr = self.read_pc_inc()
-
-        self.counts[instr] += 1
 
         self.cycles += 1 # FIXME
 
