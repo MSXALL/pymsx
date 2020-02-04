@@ -34,6 +34,7 @@ class z80:
         self.sp = 0xffff
         self.im = 0
         self.i = self.r = 0
+        self.iff1 = self.iff2 = 0
 
         self.cycles = 0
         self.int = False
@@ -1470,6 +1471,7 @@ class z80:
         self.ed_jumps[0x49] = self._out_c_high
         self.ed_jumps[0x4a] = self._adc_pair
         self.ed_jumps[0x4b] = self._ld_pair_mem
+        self.ed_jumps[0x4d] = self._reti
         self.ed_jumps[0x4f] = self._ld_r_a
         self.ed_jumps[0x50] = self._in_ed_low
         self.ed_jumps[0x51] = self._out_c_low
@@ -1482,6 +1484,7 @@ class z80:
         self.ed_jumps[0x59] = self._out_c_high
         self.ed_jumps[0x5a] = self._adc_pair
         self.ed_jumps[0x5b] = self._ld_pair_mem
+        self.ed_jumps[0x5d] = self._retn
         self.ed_jumps[0x5f] = self._ld_a_r
         self.ed_jumps[0x50] = self._in_ed_low
         self.ed_jumps[0x60] = self._in_ed_low
@@ -1494,6 +1497,7 @@ class z80:
         self.ed_jumps[0x69] = self._out_c_high
         self.ed_jumps[0x6a] = self._adc_pair
         self.ed_jumps[0x6b] = self._ld_pair_mem
+        self.ed_jumps[0x6d] = self._retn
         self.ed_jumps[0x6f] = self._rld
         self.ed_jumps[0x71] = self._out_c_low
         self.ed_jumps[0x72] = self._sbc_pair
@@ -1504,6 +1508,7 @@ class z80:
         self.ed_jumps[0x79] = self._out_c_high
         self.ed_jumps[0x7a] = self._adc_pair
         self.ed_jumps[0x7b] = self._ld_pair_mem
+        self.ed_jumps[0x7d] = self._retn
         self.ed_jumps[0xa0] = self._ldi
         self.ed_jumps[0xa3] = self._outi
         self.ed_jumps[0xb0] = self._ldir
@@ -1511,6 +1516,15 @@ class z80:
         self.ed_jumps[0xb3] = self._otir
         self.ed_jumps[0xb8] = self._lddr
         self.ed_jumps[0xb9] = self._cpdr
+
+    def _reti(self, instr):
+        self.pc = self.pop()
+        self.debug('RETI')
+
+    def _retn(self, instr):
+        self.pc = self.pop()
+        self.iff1 = self.iff2
+        self.debug('RETN')
 
     def _rld(self, instr):
         a = self.m16(self.h, self.l)
