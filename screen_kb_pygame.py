@@ -77,36 +77,52 @@ class screen_kb_pygame(screen_kb):
 
                 par = pygame.PixelArray(self.surface)
 
+                pb = None
+                cache = None
+
+                hit = 0
+
                 for map_index in range(0, 32 * 24):
-                    cur_char_nr = self.ram[bg_map + map_index]
                     block_nr    = (map_index >> 8) & 3
-                    cur_tiles   = bg_tiles  + (block_nr * 256 * 8) + (cur_char_nr * 8)
-                    cur_colors  = bg_colors + (block_nr * 256 * 8) + (cur_char_nr * 8)
-                    # offset in SDL window
+                    if block_nr != pb:
+                        cache = [ None ] * 256
+                        pb = block_nr
+
+                    cur_char_nr = self.ram[bg_map + map_index]
+
                     scr_x = (map_index & 31) * 8;
                     scr_y = ((map_index >> 5) & 31) * 8;
-                    end_x = scr_x + 8;
 
-                    for y in range(7, -1, -1):
-                        current_tile = self.ram[cur_tiles]
-                        cur_tiles += 1
+                    if cache[cur_char_nr] == None:
+                        cache[cur_char_nr] = [ 0 ] * 64
 
-                        current_color = self.ram[cur_colors]
-                        cur_colors += 1
+                        cur_tiles   = bg_tiles  + (block_nr * 256 * 8) + (cur_char_nr * 8)
+                        cur_colors  = bg_colors + (block_nr * 256 * 8) + (cur_char_nr * 8)
 
-                        fg = self.rgb[current_color >> 4]
-                        bg = self.rgb[current_color & 15]
+                        for y in range(0, 8):
+                            current_tile = self.ram[cur_tiles]
+                            cur_tiles += 1
 
-                        for x in range(scr_x, end_x):
-                            self.arr[x, scr_y] = fg if (current_tile & 128) == 128 else bg
-                            current_tile <<= 1
+                            current_color = self.ram[cur_colors]
+                            cur_colors += 1
 
-                        scr_y += 1
+                            fg = self.rgb[current_color >> 4]
+                            bg = self.rgb[current_color & 15]
+
+                            for x in range(0, 8):
+                                cache[cur_char_nr][y * 8 + x] = fg if (current_tile & 128) == 128 else bg
+                                current_tile <<= 1
+                    else:
+                        hit += 1
+
+                    for y in range(0, 8):
+                        for x in range(0, 8):
+                            self.arr[scr_x + x, scr_y + y] = cache[cur_char_nr][y * 8 + x]
 
                 pygame.surfarray.blit_array(self.screen, self.arr)
                 pygame.display.flip()
 
-                print('daar %f %f' % (s, time.time() - s))
+                print('daar %f %f | %.2f' % (s, time.time() - s, hit * 100.0 / (32 * 24)))
 
             else:
                 msg = 'Unsupported resolution'
