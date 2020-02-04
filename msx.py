@@ -11,7 +11,7 @@ from gen_rom import gen_rom
 from pagetype import PageType
 from scc import scc
 from z80 import z80
-from screen_kb import screen_kb
+from screen_kb_ncurses import screen_kb_ncurses
 
 abort_time = None # 60
 
@@ -157,7 +157,7 @@ def cpu_thread():
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
-dk = screen_kb(cpu, io)
+dk = screen_kb_ncurses(cpu, io)
 dk.start()
 
 t = threading.Thread(target=cpu_thread)
