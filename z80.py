@@ -124,7 +124,7 @@ class z80:
             assert False
 
     def _jp_wrap(self, instr):
-        if instr == 0xc0:
+        if instr == 0xc2:
             self._jp(not self.get_flag_z(), 'NZ')
 
         elif instr == 0xc3:
@@ -133,26 +133,26 @@ class z80:
         elif instr == 0xca:  # JP Z,**
             self._jp(self.get_flag_z(), 'Z')
 
-        elif instr == 0xd0:
+        elif instr == 0xd2:
             self._jp(not self.get_flag_c(), 'NC')
 
         elif instr == 0xda:  # JP c,**
             self._jp(self.get_flag_c(), 'C')
 
-        elif instr == 0xe0:
+        elif instr == 0xe2:
             self._jp(not self.get_flag_pv(), 'PO')
 
         elif instr == 0xea:  # JP pe,**
             self._jp(self.get_flag_pv(), 'PE')
 
-        elif instr == 0xf0:
+        elif instr == 0xf2:
             self._jp(not self.get_flag_s(), 'P')
 
         elif instr == 0xfa:  # JP M,**
             self._jp(self.get_flag_s(), 'M')
 
         else:
-            assert False
+            self.ui(instr)
 
     def _call_wrap(self, instr):
         if instr == 0xc4:
@@ -180,7 +180,7 @@ class z80:
             self._call_flag(self.get_flag_s(), 'M')
 
         else:
-            assert False
+            self.ui(instr)
 
     def _nop(self, instr):
         pass
@@ -192,7 +192,7 @@ class z80:
         self.main_jumps[0x01] = self._ld_pair
 
         self.main_jumps[0x10] = self._djnz
-        self.main_jumps[0x01] = self._ld_pair
+        self.main_jumps[0x11] = self._ld_pair
 
         self.main_jumps[0x20] = self._jr_wrapper
         self.main_jumps[0x21] = self._ld_pair
@@ -245,7 +245,7 @@ class z80:
         self.main_jumps[0x1a] = self._ld_a_imem
 
         self.main_jumps[0x2a] = self._ld_imem
-        self.main_jumps[0xea] = self._ld_imem
+        self.main_jumps[0x3a] = self._ld_imem
 
         self.main_jumps[0x0b] = self._dec_pair
         self.main_jumps[0x1b] = self._dec_pair
@@ -390,7 +390,7 @@ class z80:
             self.main_jumps[instr](instr)
 
         except TypeError as te:
-            self.debug('TypeError IX(%02x): %s' % (instr, te))
+            self.debug('TypeError main(%02x): %s' % (instr, te))
             assert False
 
     def m16(self, high, low):
