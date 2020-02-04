@@ -2052,7 +2052,7 @@ def test_srl():
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
 test__flags()
-test__support()
+#test__support()
 test_add()
 test_and()
 test_bit()
@@ -2083,7 +2083,5 @@ test_sla()
 test_srl()
 test_sub()
 test_xor()
-
-# FIXME negative relative jump
 
 print('All fine')

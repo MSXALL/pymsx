@@ -77,13 +77,13 @@ class z80:
 
         if is_sub:
             self.set_flag_n(True)
-            self.set_flag_h((((self.h & 0x0F) - (value & 0x0F)) & 0x10) != 0)
+            self.set_flag_h((((self.a & 0x0F) - (value & 0x0F)) & 0x10) != 0)
 
             result = self.a - (value + (self.get_flag_c() if carry else 0))
 
         else:
             self.set_flag_n(False)
-            self.set_flag_h((((self.h & 0x0F) + (value & 0x0F)) & 0x10) != 0)
+            self.set_flag_h((((self.a & 0x0F) + (value & 0x0F)) & 0x10) != 0)
 
             result = self.a + value + (self.get_flag_c() if carry else 0)
 
@@ -2009,11 +2009,11 @@ class z80:
 
     def _neg(self, instr):
         org_a = self.compl8(self.a)
-        a = -org_a
 
-        self.set_sub_flags(org_a, 0, a)
+        self.a = 0
+        flags_add_sub_cp(True, False, org_a)
 
-        self.a = a & 0xff
+        self.a = (-org_a) & 0xff
 
         self.debug('NEG')
 
@@ -2257,8 +2257,7 @@ class z80:
 
         v  = self.read_mem(a)
 
-        temp = self.a - v
-        self.set_sub_flags(self.a, v, temp)
+        self.flags_add_sub_cp(True, False, v)
 
         self.debug('CP (I%s + *)' % 'X' if is_ix else 'Y')
 
