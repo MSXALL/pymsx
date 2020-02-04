@@ -77,13 +77,13 @@ class z80:
 
         if is_sub:
             self.set_flag_n(True)
-            self.set_flag_h((((self.a & 0x0F) - (value & 0x0F)) & 0x10) != 0)
+            self.set_flag_h((((self.a & 0x0f) - (value & 0x0f)) & 0x10) != 0)
 
             result = self.a - (value + (self.get_flag_c() if carry else 0))
 
         else:
             self.set_flag_n(False)
-            self.set_flag_h((((self.a & 0x0F) + (value & 0x0F)) & 0x10) != 0)
+            self.set_flag_h((((self.a & 0x0f) + (value & 0x0f)) & 0x10) != 0)
 
             result = self.a + value + (self.get_flag_c() if carry else 0)
 
@@ -95,6 +95,35 @@ class z80:
         self.set_flag_pv(after_sign != before_sign and ((before_sign != value_sign and is_sub) or (before_sign == value_sign and not is_sub)))
 
         result &= 0xff
+
+        self.set_flag_z(result == 0)
+        self.set_flag_s(after_sign != 0)
+
+        return result
+
+    def flags_add_sub_cp16(self, is_sub, carry, value):
+        result = 0
+
+        if is_sub:
+            self.set_flag_n(True)
+            self.set_flag_h((((self.a & 0x0fff) - (value & 0x0fff)) & 0x1000) != 0)
+
+            result = self.a - (value + (self.get_flag_c() if carry else 0))
+
+        else:
+            self.set_flag_n(False)
+            self.set_flag_h((((self.a & 0x0fff) + (value & 0x0fff)) & 0x1000) != 0)
+
+            result = self.a + value + (self.get_flag_c() if carry else 0)
+
+        self.set_flag_c((result & 0x10000) != 0)
+
+        before_sign = self.a & 0x8000
+        value_sign = value & 0x8000
+        after_sign = result & 0x8000
+        self.set_flag_pv(after_sign != before_sign and ((before_sign != value_sign and is_sub) or (before_sign == value_sign and not is_sub)))
+
+        result &= 0xffff
 
         self.set_flag_z(result == 0)
         self.set_flag_s(after_sign != 0)
@@ -1122,7 +1151,7 @@ class z80:
         self.set_flag_pv(before >= 0 and after < 0)
         self.set_flag_s(after < 0)
         self.set_flag_n(False)
-        self.set_flag_h(not (after & 0x0F))
+        self.set_flag_h(not (after & 0x0f))
 
     def _inc_high(self, instr):
         which = instr >> 4
