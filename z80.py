@@ -389,6 +389,157 @@ class z80:
             self.debug('TypeError main(%02x): %s' % (instr, te))
             assert False
 
+    def bits(self, dummy):
+        try:
+            instr = self.read_pc_inc()
+            self.debug('bits: %02x' % instr)
+            self.bits_jumps[instr](instr)
+
+        except TypeError as te:
+            self.debug('TypeError bits(%02x): %s' % (instr, te))
+            assert False
+
+    def init_bits(self):
+        self.bits_jumps = [ None ] * 256
+
+        for i in range(0x00, 0x08):
+                self.bits_jumps[i] = self._rlc
+
+        for i in range(0x08, 0x10):
+                self.bits_jumps[i] = self._rrc
+
+        for i in range(0x10, 0x18):
+                self.bits_jumps[i] = self._rl
+
+        for i in range(0x18, 0x20):
+                self.bits_jumps[i] = self._rr
+
+        for i in range(0x20, 0x28):
+                self.bits_jumps[i] = self._sla
+
+        for i in range(0x28, 0x30):
+                self.bits_jumps[i] = self._sra
+
+        for i in range(0x38, 0x40):
+                self.bits_jumps[i] = self._srl
+
+        for i in range(0x40, 0x80):
+                self.bits_jumps[i] = self._bit
+
+        for i in range(0x80, 0xc0):
+                self.bits_jumps[i] = self._res
+
+        for i in range(0xc0, 0x100):
+                self.bits_jumps[i] = self._set
+
+    def init_xy(self):
+        self.ixy_jumps = [ None ] * 256
+
+        self.ixy_jumps[0x09] = self._add_pair_ixy
+        self.ixy_jumps[0x19] = self._add_pair_ixy
+        self.ixy_jumps[0x21] = self._ld_ixy
+        self.ixy_jumps[0x22] = self._ld_mem_from_ixy
+        self.ixy_jumps[0x23] = self._inc_ixy
+        self.ixy_jumps[0x29] = self._add_pair_ixy
+        self.ixy_jumps[0x2a] = self._ld_ixy_from_mem
+        self.ixy_jumps[0x2b] = self._dec_ixy
+        self.ixy_jumps[0x39] = self._add_pair_ixy
+        self.ixy_jumps[0x46] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x4e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x56] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x5e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x66] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x6e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x70] = self._ld_ixy_X
+        self.ixy_jumps[0x71] = self._ld_ixy_X
+        self.ixy_jumps[0x72] = self._ld_ixy_X
+        self.ixy_jumps[0x73] = self._ld_ixy_X
+        self.ixy_jumps[0x74] = self._ld_ixy_X
+        self.ixy_jumps[0x75] = self._ld_ixy_X
+        self.ixy_jumps[0x77] = self._ld_ixy_X
+        self.ixy_jumps[0x7e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x84] = self._add_a_ixy_h
+        self.ixy_jumps[0x85] = self._add_a_ixy_l
+        self.ixy_jumps[0x86] = self._add_a_deref_ixy
+        self.ixy_jumps[0xa6] = self._and_a_ixy_deref
+        self.ixy_jumps[0xbe] = self._cp_im_ixy
+        self.ixy_jumps[0xcb] = self.ixy_bit
+        self.ixy_jumps[0xe1] = self._pop_ixy
+        self.ixy_jumps[0xe5] = self._push_ixy
+        self.ixy_jumps[0xe9] = self._jp_ixy
+        self.ixy_jumps[0xf9] = self._ld_sp_ixy
+
+    def _ix(self, dummy):
+        try:
+            instr = self.read_pc_inc()
+            self.ixy_jumps[instr](instr, True)
+
+        except TypeError as te:
+            self.debug('TypeError IX(%02x): %s' % (instr, te))
+            assert False
+
+    def _iy(self, dummy):
+        try:
+            instr = self.read_pc_inc()
+            self.ixy_jumps[instr](instr, False)
+
+        except TypeError as te:
+            self.debug('TypeError IY(%02x): %s' % (instr, te))
+            assert False
+
+    def init_xy_bit(self):
+        self.ixy_bit_jumps = [ None ] * 256
+
+        for i in range(0x00, 0x08):
+                self.ixy_bit_jumps[i] = self._rlc_ixy
+
+#        for i in range(0x08, 0x10):
+#                self.ixy_bit_jumps[i] = self._rrc_ixy
+
+#        for i in range(0x10, 0x18):
+#                self.ixy_bit_jumps[i] = self._rl_ixy
+
+#        for i in range(0x18, 0x20):
+#                self.ixy_bit_jumps[i] = self._rr_ixy
+
+#        for i in range(0x20, 0x28):
+#                self.ixy_bit_jumps[i] = self._sla_ixy
+
+#        for i in range(0x28, 0x30):
+#                self.ixy_bit_jumps[i] = self._sra_ixy
+
+#        for i in range(0x38, 0x40):
+#                self.ixy_bit_jumps[i] = self._srl_ixy
+
+#        for i in range(0x40, 0x80):
+#                self.ixy_bit_jumps[i] = self._bit_ixy
+
+#        for i in range(0x80, 0xc0):
+#                self.ixy_bit_jumps[i] = self._res_ixy
+
+#        for i in range(0xc0, 0x100):
+#                self.ixy_bit_jumps[i] = self._set_ixy
+
+    def ixy_bit(self, instr, which):
+        try:
+            instr = self.read_pc_inc()
+            self.debug('I%s: %02x' % ('X' if which else 'Y', instr))
+            self.ixy_bit_jumps[instr](instr, which)
+
+        except TypeError as te:
+            self.debug('TypeError IXY_BIT(%02x): %s' % (instr, te))
+            assert False
+
+    def _ed(self, dummy):
+        try:
+            instr = self.read_pc_inc()
+            self.debug('EXT: %02x' % instr)
+            self.ed_jumps[instr](instr)
+
+        except TypeError as te:
+            self.debug('TypeError EXT(%02x): %s' % (instr, te))
+            assert False
+
     def m16(self, high, low):
         assert low >= 0 and low <= 255
         assert high >= 0 and high <= 255
@@ -600,49 +751,6 @@ class z80:
         out += ' AF: %02x%02x, BC: %02x%02x, DE: %02x%02x, HL: %02x%02x, PC: %04x, SP: %04x, IX: %04x, IY: %04x / %d }' % (self.a, self.f, self.b, self.c, self.d, self.e, self.h, self.l, self.pc, self.sp, self.ix, self.iy, self.cycles)
 
         return out
-
-    def bits(self, dummy):
-        try:
-            instr = self.read_pc_inc()
-            self.debug('bits: %02x' % instr)
-            self.bits_jumps[instr](instr)
-
-        except TypeError as te:
-            self.debug('TypeError bits(%02x): %s' % (instr, te))
-            assert False
-
-    def init_bits(self):
-        self.bits_jumps = [ None ] * 256
-
-        for i in range(0x00, 0x08):
-                self.bits_jumps[i] = self._rlc
-
-        for i in range(0x08, 0x10):
-                self.bits_jumps[i] = self._rrc
-
-        for i in range(0x10, 0x18):
-                self.bits_jumps[i] = self._rl
-
-        for i in range(0x18, 0x20):
-                self.bits_jumps[i] = self._rr
-
-        for i in range(0x20, 0x28):
-                self.bits_jumps[i] = self._sla
-
-        for i in range(0x28, 0x30):
-                self.bits_jumps[i] = self._sra
-
-        for i in range(0x38, 0x40):
-                self.bits_jumps[i] = self._srl
-
-        for i in range(0x40, 0x80):
-                self.bits_jumps[i] = self._bit
-
-        for i in range(0x80, 0xc0):
-                self.bits_jumps[i] = self._res
-
-        for i in range(0xc0, 0x100):
-                self.bits_jumps[i] = self._set
 
     def set_add_flags(self, before, value, after):
         self.set_flag_c((after & 0x100) != 0)
@@ -1334,114 +1442,6 @@ class z80:
         else:
             self.sp = self.iy
             self.debug('LD SP,IY')
-
-    def init_xy(self):
-        self.ixy_jumps = [ None ] * 256
-
-        self.ixy_jumps[0x09] = self._add_pair_ixy
-        self.ixy_jumps[0x19] = self._add_pair_ixy
-        self.ixy_jumps[0x21] = self._ld_ixy
-        self.ixy_jumps[0x22] = self._ld_mem_from_ixy
-        self.ixy_jumps[0x23] = self._inc_ixy
-        self.ixy_jumps[0x29] = self._add_pair_ixy
-        self.ixy_jumps[0x2a] = self._ld_ixy_from_mem
-        self.ixy_jumps[0x2b] = self._dec_ixy
-        self.ixy_jumps[0x39] = self._add_pair_ixy
-        self.ixy_jumps[0x46] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x4e] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x56] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x5e] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x66] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x6e] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x70] = self._ld_ixy_X
-        self.ixy_jumps[0x71] = self._ld_ixy_X
-        self.ixy_jumps[0x72] = self._ld_ixy_X
-        self.ixy_jumps[0x73] = self._ld_ixy_X
-        self.ixy_jumps[0x74] = self._ld_ixy_X
-        self.ixy_jumps[0x75] = self._ld_ixy_X
-        self.ixy_jumps[0x77] = self._ld_ixy_X
-        self.ixy_jumps[0x7e] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x84] = self._add_a_ixy_h
-        self.ixy_jumps[0x85] = self._add_a_ixy_l
-        self.ixy_jumps[0x86] = self._add_a_deref_ixy
-        self.ixy_jumps[0xa6] = self._and_a_ixy_deref
-        self.ixy_jumps[0xbe] = self._cp_im_ixy
-        self.ixy_jumps[0xcb] = self.ixy_bit
-        self.ixy_jumps[0xe1] = self._pop_ixy
-        self.ixy_jumps[0xe5] = self._push_ixy
-        self.ixy_jumps[0xe9] = self._jp_ixy
-        self.ixy_jumps[0xf9] = self._ld_sp_ixy
-
-    def _ix(self, dummy):
-        try:
-            instr = self.read_pc_inc()
-            self.ixy_jumps[instr](instr, True)
-
-        except TypeError as te:
-            self.debug('TypeError IX(%02x): %s' % (instr, te))
-            assert False
-
-    def _iy(self, dummy):
-        try:
-            instr = self.read_pc_inc()
-            self.ixy_jumps[instr](instr, False)
-
-        except TypeError as te:
-            self.debug('TypeError IY(%02x): %s' % (instr, te))
-            assert False
-
-    def init_xy_bit(self):
-        self.ixy_bit_jumps = [ None ] * 256
-
-        for i in range(0x00, 0x08):
-                self.ixy_bit_jumps[i] = self._rlc_ixy
-
-#        for i in range(0x08, 0x10):
-#                self.ixy_bit_jumps[i] = self._rrc_ixy
-
-#        for i in range(0x10, 0x18):
-#                self.ixy_bit_jumps[i] = self._rl_ixy
-
-#        for i in range(0x18, 0x20):
-#                self.ixy_bit_jumps[i] = self._rr_ixy
-
-#        for i in range(0x20, 0x28):
-#                self.ixy_bit_jumps[i] = self._sla_ixy
-
-#        for i in range(0x28, 0x30):
-#                self.ixy_bit_jumps[i] = self._sra_ixy
-
-#        for i in range(0x38, 0x40):
-#                self.ixy_bit_jumps[i] = self._srl_ixy
-
-#        for i in range(0x40, 0x80):
-#                self.ixy_bit_jumps[i] = self._bit_ixy
-
-#        for i in range(0x80, 0xc0):
-#                self.ixy_bit_jumps[i] = self._res_ixy
-
-#        for i in range(0xc0, 0x100):
-#                self.ixy_bit_jumps[i] = self._set_ixy
-
-    def ixy_bit(self, instr, which):
-        try:
-            instr = self.read_pc_inc()
-            self.debug('I%s: %02x' % ('X' if which else 'Y', instr))
-            self.ixy_bit_jumps[instr](instr, which)
-
-        except TypeError as te:
-            self.debug('TypeError IXY_BIT(%02x): %s' % (instr, te))
-            assert False
-
-    def _ed(self, dummy):
-        try:
-            instr = self.read_pc_inc()
-            self.debug('EXT: %02x' % instr)
-            self.ed_jumps[instr](instr)
-
-        except TypeError as te:
-            self.debug('TypeError EXT(%02x): %s' % (instr, te))
-            assert False
 
     def _ld_mem_pair(self, instr):
         which = (instr >> 4) -4
@@ -2224,8 +2224,8 @@ class z80:
     def _add_a_deref_ixy(self, instr, is_ix):
         offset = self.compl8(self.read_pc_inc())
         ixy = self.ix if is_ix else self.iy
-        name = 'IX' if is_ix else 'IY'
         a = (ixy + offset) & 0xffff
+        name = 'IX' if is_ix else 'IY'
         old_val = self.a
 
         v = self.read_mem(a)
