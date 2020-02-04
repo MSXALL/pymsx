@@ -72,6 +72,22 @@ class z80:
         high = self.read_pc_inc()
         return self.m16(high, low)
 
+    def _jr_wrapper(self, instr):
+        if instr == 0x18:
+            self._jr(True, '')
+
+        elif instr == 0x20:
+            self._jr(not self.get_flag_z(), "nz")
+
+        elif instr == 0x28:
+            self._jr(self.get_flag_z(), 'z')
+
+        elif instr == 0x30:
+            self._jr(not self.get_flag_c(), "nc")
+
+        elif instr == 0x38:
+            self._jr(self.get_flag_c(), 'c')
+
     def step(self):
         if self.int:
             self.int = False
@@ -101,10 +117,10 @@ class z80:
                     self._djnz()
 
                 elif major == 0x02:
-                    self._jr(not self.get_flag_z(), "nz")
+                    self._jr_wrapper(instr)
 
                 elif major == 0x03:
-                    self._jr(not self.get_flag_c(), "nc")
+                    self._jr_wrapper(instr)
 
                 else:
                     self.ui(instr)
@@ -155,13 +171,13 @@ class z80:
                     self._ex_af(instr)
 
                 elif major == 1:
-                    self._jr(True, '')
+                    self._jr_wrapper(instr)
 
                 elif major == 2:
-                    self._jr(self.get_flag_z(), 'z')
+                    self._jr_wrapper(instr)
 
                 elif major == 3:
-                    self._jr(self.get_flag_c(), 'c')
+                    self._jr_wrapper(instr)
 
                 else:
                     self.ui(instr)
