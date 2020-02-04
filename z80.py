@@ -494,11 +494,11 @@ class z80:
         for i in range(0x00, 0x08):
                 self.ixy_bit_jumps[i] = self._rlc_ixy
 
-#        for i in range(0x08, 0x10):
-#                self.ixy_bit_jumps[i] = self._rrc_ixy
+        for i in range(0x08, 0x10):
+                self.ixy_bit_jumps[i] = self._rrc_ixy
 
-#        for i in range(0x10, 0x18):
-#                self.ixy_bit_jumps[i] = self._rl_ixy
+        for i in range(0x10, 0x18):
+                self.ixy_bit_jumps[i] = self._rl_ixy
 
 #        for i in range(0x18, 0x20):
 #                self.ixy_bit_jumps[i] = self._rr_ixy
@@ -1708,6 +1708,63 @@ class z80:
         self.set_flag_s((val & 0x80) == 0x80)
 
         self.debug('RLC (%s + 0x%02x), %s' % (name, offset, dst_name))
+
+    def _rrc_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        val = self.read_mem(a)
+
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        old_0 = val & 1
+        self.set_flag_c(old_0 == 1)
+
+        val >>= 1
+        val |= old_0 << 7
+
+        self.set_flag_pv(self.parity(val))
+        self.set_flag_z(val == 0)
+        self.set_flag_s(val >= 128)
+
+        dst = instr & 0x7
+        if dst == 6:
+            self.write_mem(a, val)
+
+        else:
+            dst_name = self.set_dst(dst, val)
+
+        self.debug('RRC (%s + 0x%02x), %s' % (name, offset, dst_name))
+
+    def _rl_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        val = self.read_mem(a)
+
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        val <<= 1
+        val |= self.get_flag_c()
+        self.set_flag_c(val > 255)
+        val &= 0xff
+
+        self.set_flag_pv(self.parity(val))
+        self.set_flag_z(val == 0)
+        self.set_flag_s(val >= 128)
+
+        dst = instr & 0x7
+        if dst == 6:
+            self.write_mem(a, val)
+
+        else:
+            dst_name = self.set_dst(dst, val)
+
+        self.debug('RL (%s + 0x%02x), %s' % (name, offset, dst_name))
 
     def _cp_mem(self, instr):
         val = self.read_pc_inc()
