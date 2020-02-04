@@ -11,6 +11,7 @@ class z80:
         self.write_io = write_io
         self.debug_out = debug
 
+        self.init_main()
         self.init_xy()
         self.init_xy_bit()
         self.init_bits()
@@ -181,6 +182,197 @@ class z80:
         else:
             assert False
 
+    def _nop(self, instr):
+        pass
+
+    def init_main(self):
+        self.main_jumps = [ None ] * 256
+
+        self.main_jumps[0x00] = self._nop
+        self.main_jumps[0x01] = self._ld_pair
+
+        self.main_jumps[0x10] = self._djnz
+        self.main_jumps[0x01] = self._ld_pair
+
+        self.main_jumps[0x20] = self._jr_wrapper
+        self.main_jumps[0x21] = self._ld_pair
+
+        self.main_jumps[0x30] = self._jr_wrapper
+        self.main_jumps[0x31] = self._ld_pair
+
+        self.main_jumps[0x02] = self._ld_pair_from_a
+        self.main_jumps[0x12] = self._ld_pair_from_a
+
+        self.main_jumps[0x22] = self._ld_imem_from
+        self.main_jumps[0x32] = self._ld_imem_from
+
+        self.main_jumps[0x03] = self._inc_pair
+        self.main_jumps[0x13] = self._inc_pair
+        self.main_jumps[0x23] = self._inc_pair
+        self.main_jumps[0x33] = self._inc_pair
+
+        self.main_jumps[0x04] = self._inc_high
+        self.main_jumps[0x14] = self._inc_high
+        self.main_jumps[0x24] = self._inc_high
+        self.main_jumps[0x34] = self._inc_high
+
+        self.main_jumps[0x05] = self._dec_high
+        self.main_jumps[0x15] = self._dec_high
+        self.main_jumps[0x25] = self._dec_high
+        self.main_jumps[0x35] = self._dec_high
+
+        self.main_jumps[0x06] = self._ld_val_high
+        self.main_jumps[0x16] = self._ld_val_high
+        self.main_jumps[0x26] = self._ld_val_high
+        self.main_jumps[0x36] = self._ld_val_high
+
+        self.main_jumps[0x07] = self._rlca
+        self.main_jumps[0x17] = self._rla
+        self.main_jumps[0x27] = self._daa
+        self.main_jumps[0x37] = self._scf
+
+        self.main_jumps[0x08] = self._ex_af
+        self.main_jumps[0x18] = self._jr_wrapper
+        self.main_jumps[0x28] = self._jr_wrapper
+        self.main_jumps[0x38] = self._jr_wrapper
+
+        self.main_jumps[0x09] = self._add_pair
+        self.main_jumps[0x19] = self._add_pair
+        self.main_jumps[0x29] = self._add_pair
+        self.main_jumps[0x39] = self._add_pair
+
+        self.main_jumps[0x0a] = self._ld_a_imem
+        self.main_jumps[0x1a] = self._ld_a_imem
+
+        self.main_jumps[0x2a] = self._ld_imem
+        self.main_jumps[0xea] = self._ld_imem
+
+        self.main_jumps[0x0b] = self._dec_pair
+        self.main_jumps[0x1b] = self._dec_pair
+        self.main_jumps[0x2b] = self._dec_pair
+        self.main_jumps[0x3b] = self._dec_pair
+
+        self.main_jumps[0x0c] = self._inc_low
+        self.main_jumps[0x1c] = self._inc_low
+        self.main_jumps[0x2c] = self._inc_low
+        self.main_jumps[0x3c] = self._inc_low
+
+        self.main_jumps[0x0d] = self._dec_low
+        self.main_jumps[0x1d] = self._dec_low
+        self.main_jumps[0x2d] = self._dec_low
+        self.main_jumps[0x3d] = self._dec_low
+
+        self.main_jumps[0x0e] = self._ld_val_low
+        self.main_jumps[0x1e] = self._ld_val_low
+        self.main_jumps[0x2e] = self._ld_val_low
+        self.main_jumps[0x3e] = self._ld_val_low
+
+        self.main_jumps[0x0f] = self._rrca
+        self.main_jumps[0x1f] = self._rr
+        self.main_jumps[0x2f] = self._cpl
+        self.main_jumps[0x3f] = self._ccf
+
+        for i in range(0x40, 0x80):
+            self.main_jumps[i] = self._ld
+
+        for i in range(0x80, 0x90):
+            self.main_jumps[i] = self._add
+
+        for i in range(0x90, 0xa0):
+            self.main_jumps[i] = self._sub
+
+        for i in range(0xa0, 0xa8):
+            self.main_jumps[i] = self._and
+
+        for i in range(0xa8, 0xb0):
+            self.main_jumps[i] = self._xor
+
+        for i in range(0xb0, 0xb8):
+            self.main_jumps[i] = self._or
+
+        for i in range(0xb8, 0xc0):
+            self.main_jumps[i] = self._cp
+
+        self.main_jumps[0xc0] = self._ret_wrap
+        self.main_jumps[0xd0] = self._ret_wrap
+        self.main_jumps[0xe0] = self._ret_wrap
+        self.main_jumps[0xf0]= self._ret_wrap
+
+        self.main_jumps[0xc1] = self._pop
+        self.main_jumps[0xd1] = self._pop
+        self.main_jumps[0xe1] = self._pop
+        self.main_jumps[0xf1] = self._pop
+
+        self.main_jumps[0xc2] = self._jp_wrap
+        self.main_jumps[0xd2] = self._jp_wrap
+        self.main_jumps[0xe2] = self._jp_wrap
+        self.main_jumps[0xf2] = self._jp_wrap
+
+        self.main_jumps[0xc3] = self._jp_wrap
+        self.main_jumps[0xd3] = self._out
+        self.main_jumps[0xe3] = self._ex_sp_hl
+        self.main_jumps[0xf3] = self._di
+
+        self.main_jumps[0xc4] = self._call_wrap
+        self.main_jumps[0xd4] = self._call_wrap
+        self.main_jumps[0xe4] = self._call_wrap
+        self.main_jumps[0xf4] = self._call_wrap
+
+        self.main_jumps[0xc5] = self._push
+        self.main_jumps[0xd5] = self._push
+        self.main_jumps[0xe5] = self._push
+        self.main_jumps[0xf5] = self._push
+
+        self.main_jumps[0xc6] = self._add_a_val
+        self.main_jumps[0xd6] = self._sub_val
+        self.main_jumps[0xe6] = self._and_val
+        self.main_jumps[0xf6] = self._or_val
+
+        self.main_jumps[0xc7] = self._rst
+        self.main_jumps[0xd7] = self._rst
+        self.main_jumps[0xe7] = self._rst
+        self.main_jumps[0xf7] = self._rst
+
+        self.main_jumps[0xc8] = self._ret_wrap
+        self.main_jumps[0xd8] = self._ret_wrap
+        self.main_jumps[0xe8] = self._ret_wrap
+        self.main_jumps[0xf8] = self._ret_wrap
+
+        self.main_jumps[0xc9] = self._ret_always
+        self.main_jumps[0xd9] = self._exx
+        self.main_jumps[0xe9] = self._jp_hl
+        self.main_jumps[0xf9] = self._ld_sp_hl
+
+        self.main_jumps[0xca] = self._jp_wrap
+        self.main_jumps[0xda] = self._jp_wrap
+        self.main_jumps[0xea] = self._jp_wrap
+        self.main_jumps[0xfa] = self._jp_wrap
+
+        self.main_jumps[0xcb] = self.bits
+        self.main_jumps[0xdb] = self._in
+        self.main_jumps[0xeb] = self._ex_de_hl
+        self.main_jumps[0xfb] = self._ei
+
+        self.main_jumps[0xcc] = self._call_wrap
+        self.main_jumps[0xdc] = self._call_wrap
+        self.main_jumps[0xec] = self._call_wrap
+        self.main_jumps[0xfc] = self._call_wrap
+
+        self.main_jumps[0xcd] = self._call
+        self.main_jumps[0xdd] = self._ix
+        self.main_jumps[0xed] = self._ed
+        self.main_jumps[0xfd] = self._iy
+
+        self.main_jumps[0xce] = self._add_a_val
+        self.main_jumps[0xde] = self._sub_val
+        self.main_jumps[0xee] = self._xor_mem
+        self.main_jumps[0xfe] = self._cp_mem
+
+        self.main_jumps[0xcf] = self._rst
+        self.main_jumps[0xdf] = self._rst
+        self.main_jumps[0xef] = self._rst
+        self.main_jumps[0xff] = self._rst
+
     def step(self):
         if self.int:
             self.int = False
@@ -188,370 +380,18 @@ class z80:
             self.push(self.pc)
             self.pc = 0x38
 
-        old_pc = self.pc
         instr = self.read_pc_inc()
-        #print('%04x %02x  ' % (old_pc, instr), end='')
 
         self.counts[instr] += 1
 
         self.cycles += 1 # FIXME
 
-        major = instr >> 4
-        minor = instr & 15
-        minor1 = instr & 8
-        minor2 = instr & 7
-
-        if major <= 0x03:
-            if minor == 0x00:
-                if major == 0x00:
-                    pass  # NOP
-
-                elif major == 0x01:
-                    self._djnz(instr)
-
-                elif major == 0x02:
-                    self._jr_wrapper(instr)
-
-                elif major == 0x03:
-                    self._jr_wrapper(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x01:
-                self._ld_pair(instr)
-
-            elif minor == 0x02:
-                if major == 0x00 or major == 0x01:
-                    self._ld_pair_from_a(instr)
-
-                elif major == 0x02 or major == 0x03:
-                    self._ld_imem_from(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x03:
-                self._inc_pair(instr)
-
-            elif minor == 0x04:
-                self._inc_high(instr)
-
-            elif minor == 0x05:
-                self._dec_high(instr)
-
-            elif minor == 0x06:
-                self._ld_val_high(instr)
-
-            elif minor == 0x07:
-                if major == 0:
-                    self._rlca(instr)
-
-                elif major == 0x01:
-                    self._rla(instr)
-
-                elif major == 0x02:
-                    self._daa(instr)
-
-                elif major == 0x03:
-                    self._scf(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x08:
-                if major == 0:
-                    self._ex_af(instr)
-
-                elif major == 1:
-                    self._jr_wrapper(instr)
-
-                elif major == 2:
-                    self._jr_wrapper(instr)
-
-                elif major == 3:
-                    self._jr_wrapper(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x09:
-                self._add_pair(instr)
-
-            elif minor == 0x0a:
-                if major == 0x00 or major == 0x01:
-                    self._ld_a_imem(instr)
-
-                elif major == 0x02 or major == 0x03:
-                    self._ld_imem(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x0b:
-                self._dec_pair(instr)
-
-            elif minor == 0x0c:
-                self._inc_low(instr)
-
-            elif minor == 0x0d:
-                self._dec_low(instr)
-
-            elif minor == 0x0e:
-                self._ld_val_low(instr)
-
-            elif minor == 0x0f:
-                if major == 0x00:
-                    self._rrca(instr)
-
-                elif major == 0x01:
-                    self._rr(instr)
-
-                elif major == 0x02:  # CPL
-                    self._cpl(instr)
-
-                elif major == 0x03:
-                    self._ccf(instr)
-
-                else:
-                    self.ui(instr)
-
-            else:
-                self.ui(instr)
-
-        elif major >= 0x04 and major <= 0x07:  # LD
-            self._ld(instr)
-
-        elif major == 0x08:  # ADD/ADC
-            self._add(instr)
-
-        elif major == 0x09:  # SUB/SBC
-            self._sub(instr)
-
-        elif major == 0x0a:  # AND/XOR
-            if minor1:
-                self._xor(instr)
-
-            else:
-                self._and(instr)
-
-        elif major == 0x0b:  # OR/CP
-            if minor1:
-                self._cp(instr)
-
-            else:
-                self._or(instr)
-
-        elif major >= 0x0c:
-            if minor == 0x00:
-                if major == 0x0c:
-                    self._ret_wrap(instr)
-
-                elif major == 0x0d:
-                    self._ret_wrap(instr)
-
-                elif major == 0x0e:
-                    self._ret_wrap(instr)
-
-                elif major == 0x0f:
-                    self._ret_wrap(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x01:
-                self._pop(instr)
-
-            elif minor == 0x02:
-                if major == 0x0c:
-                    self._jp_wrap(instr)
-
-                elif major == 0x0d:
-                    self._jp_wrap(instr)
-
-                elif major == 0x0e:
-                    self._jp_wrap(instr)
-
-                elif major == 0x0f:
-                    self._jp_wrap(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x03:
-                if major == 0x0c:  # JP
-                    self._jp_wrap(instr)
-
-                elif major == 0x0d:  # OUT (*), a
-                    self._out(instr)
-
-                elif major == 0x0e:  # EX (SP),HL
-                    self._ex_sp_hl(instr)
-
-                elif major == 0x0f:  # DI
-                    self._di(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x04:
-                if major == 0x0c:
-                    self._call_wrap(instr)
-
-                elif major == 0x0d:
-                    self._call_wrap(instr)
-
-                elif major == 0x0e:
-                    self._call_wrap(instr)
-
-                elif major == 0x0f:
-                    self._call_wrap(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x05:  # PUSH
-                self._push(instr)
-
-            elif minor == 0x06:
-                if major == 0x0c:  # ADD A, *
-                    self._add_a_val(instr)
-
-                elif major == 0x0d:  # SUB *
-                    self._sub_val(instr)
-
-                elif major == 0x0e:  # AND *
-                    self._and_val(instr)
-
-                elif major == 0x0f:  # OR *
-                    self._or_val(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x07:
-                self._rst(instr)
-
-            elif minor == 0x08:
-                if major == 0x0c:
-                    self._ret_wrap(instr)
-
-                elif major == 0x0d:
-                    self._ret_wrap(instr)
-
-                elif major == 0x0e:
-                    self._ret_wrap(instr)
-
-                elif major == 0x0f:
-                    self._ret_wrap(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x09:
-                if major == 0x0c:  # RET
-                    self._ret_always(instr)
-
-                elif major == 0x0d:  # EXX
-                    self._exx(instr)
-
-                elif major == 0x0e:
-                    self._jp_hl(instr)
-
-                elif major == 0x0f:  # LD SP, HL
-                    self._ld_sp_hl(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x0a:
-                if major == 0x0c:  # JP Z,**
-                    self._jp_wrap(instr)
-
-                elif major == 0x0d:  # JP c,**
-                    self._jp_wrap(instr)
-
-                elif major == 0x0e:  # JP pe,**
-                    self._jp_wrap(instr)
-
-                elif major == 0x0f:  # JP M,**
-                    self._jp_wrap(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x0b:
-                if major == 0x0c:  # BITS
-                    self.bits(instr)
-
-                elif major == 0x0d:  # IN A,(*)
-                    self._in(instr)
-
-                elif major == 0x0e:  # EX DE, HL
-                    self._ex_de_hl(instr)
-
-                elif major == 0x0f:  # EI
-                    self._ei(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x0c:
-                if major == 0x0c:  # CALL Z,**
-                    self._call_wrap(instr)
-
-                elif major == 0x0d:  # CALL C,**
-                    self._call_wrap(instr)
-
-                elif major == 0x0e:  # CALL PE,**
-                    self._call_wrap(instr)
-
-                elif major == 0x0f:  # CALL M,**
-                    self._call_wrap(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x0d:
-                if major == 0x0c:  # CALL
-                    self._call(instr)
-
-                elif major == 0x0d:
-                    self._ix(instr)
-
-                elif major == 0x0e:
-                    self._ed(instr)
-
-                elif major == 0x0f:
-                    self._iy(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x0e:
-                if major == 0x0c:
-                    self._add_a_val(instr)
-
-                elif major == 0x0d:
-                    self._sub_val(instr)
-
-                elif major == 0x0e:
-                    self._xor_mem(instr)
-
-                elif major == 0x0f:
-                    self._cp_mem(instr)
-
-                else:
-                    self.ui(instr)
-
-            elif minor == 0x0f:
-                self._rst(instr)
-
-            else:
-                self.ui(instr)
-
-        else:
-            self.ui(instr)
+        try:
+            self.main_jumps[instr](instr)
+
+        except TypeError as te:
+            self.debug('TypeError IX(%02x): %s' % (instr, te))
+            assert False
 
     def m16(self, high, low):
         assert low >= 0 and low <= 255
@@ -1539,7 +1379,6 @@ class z80:
     def _ix(self, dummy):
         try:
             instr = self.read_pc_inc()
-            self.debug('IX: %02x' % instr)
             self.ixy_jumps[instr](instr, True)
 
         except TypeError as te:
@@ -1549,7 +1388,6 @@ class z80:
     def _iy(self, dummy):
         try:
             instr = self.read_pc_inc()
-            self.debug('IY: %02x' % instr)
             self.ixy_jumps[instr](instr, False)
 
         except TypeError as te:
