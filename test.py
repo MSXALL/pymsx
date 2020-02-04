@@ -950,7 +950,7 @@ def test_add():
     cpu.step()
     my_assert(cpu.h == 0x8e)
     my_assert(cpu.l == 0x8f)
-    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.f == (0x94 & 0xd7))
     my_assert(cpu.pc == 2)
 
     # ADC HL,BC [3]
@@ -966,7 +966,7 @@ def test_add():
     cpu.step()
     my_assert(cpu.h == 0x8e)
     my_assert(cpu.l == 0x8e)
-    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.f == (0x94 & 0xd7))
     my_assert(cpu.pc == 2)
 
     # ADD A,(IX+*)
@@ -995,7 +995,7 @@ def test_add():
     ram0[1] = 0x09
     cpu.step()
     my_assert(cpu.ix == 0x8e8e)
-    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.f == (0x94 & 0xd7))
     my_assert(cpu.pc == 2)
 
     # ADD IX,BC [2]
@@ -1009,7 +1009,7 @@ def test_add():
     ram0[1] = 0x09
     cpu.step()
     my_assert(cpu.ix == 0x8e8e)
-    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.f == (0x94 & 0xd7))
     my_assert(cpu.pc == 2)
 
 def test_or():
