@@ -52,19 +52,25 @@ def debug(x):
 #    print('%s <%02x/%02x>' % (x, io[0xa8], 0), file=sys.stderr)
     pass
 
+def flag_str(f):
+    flags = ''
+
+    flags += 's1 ' if f & 128 else 's0 '
+    flags += 'z1 ' if f & 64 else 'z0 '
+    flags += '51 ' if f & 32 else '50 '
+    flags += 'h1 ' if f & 16 else 'h0 '
+    flags += '31 ' if f & 8 else '30 '
+    flags += 'P1 ' if f & 4 else 'P0 '
+    flags += 'n1 ' if f & 2 else 'n0 '
+    flags += 'c1 ' if f & 1 else 'c0 '
+
+    return flags
+
 def my_assert(r):
     if not r:
         print(cpu.reg_str())
         caller = getframeinfo(stack()[1][0])
-        flags = ''
-        for i in range(0, 8):
-            if i == (7 - 5) or i == (7 - 3):
-                flags += 'x'
-            elif cpu.f & (128 >> i):
-                flags += '1'
-            else:
-                flags += '0'
-        print(flags)
+        print(flag_str(cpu.f))
         print('%s:%d' % (caller.filename, caller.lineno))
         sys.exit(1)
 
