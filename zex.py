@@ -72,7 +72,7 @@ for b in zex:
 cpu.sp = 0xf000
 cpu.pc = 0x0100
 
-for dummy in range(0, 1000000):
+while True:
     if cpu.pc == 0x0005:
         if cpu.c == 2:
             print('%c' % cpu.e, end='', flush=True)

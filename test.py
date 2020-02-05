@@ -744,35 +744,35 @@ def test__support():
     cpu.a = 0xf0
     print(cpu.flags_add_sub_cp(True, False, 0x21))
     my_assert(cpu.flags_add_sub_cp(True, False, 0x21) == 0xf0 - 0x21)
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
 
     cpu.f = 0
     cpu.a = 0xf0
     my_assert(cpu.flags_add_sub_cp(True, False, 0xf0) == 0xf0 - 0xf0)
-    my_assert(cpu.f == (0x62 & 0xd7))
+    my_assert(cpu.f == 0x62)
 
     cpu.f = 0
     cpu.a = 0x01
     my_assert(cpu.flags_add_sub_cp(True, False, 0xa0) == (0x01 - 0xa0) & 0xff)
-    my_assert(cpu.f == (0x23 & 0xd7))
+    my_assert(cpu.f == 0x23)
 
     # ADD flags
     cpu.reset()
     cpu.f = 0
     cpu.set_add_flags(0xf0, 0x21, 0xf0 + 0x21)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
 
     cpu.f = 0
     cpu.set_add_flags(0xf0, 0xf0, 0xf0 + 0xf0)
-    my_assert(cpu.f == (0x81 & 0xd7))
+    my_assert(cpu.f == 0x81)
 
     cpu.f = 0
     cpu.set_add_flags(0x01, 0xa0, 0x01 + 0xa0)
-    my_assert(cpu.f == (0x80 & 0xd7))
+    my_assert(cpu.f == 0x80)
 
     cpu.f = 0
     cpu.set_add_flags(0xa0, 0xa0, 0xa0 + 0xa0)
-    my_assert(cpu.f == (0x05 & 0xd7))
+    my_assert(cpu.f == 0x05)
 
 def test_nop():
     cpu.reset()
@@ -791,7 +791,7 @@ def test_cp_cpir():
     cpu.step()
     my_assert(cpu.a == 0xf0)
     # 04
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
     my_assert(cpu.pc == 1)
 
     cpu.reset()
@@ -800,7 +800,7 @@ def test_cp_cpir():
     cpu.f = 0
     cpu.step()
     my_assert(cpu.a == 0xf0)
-    my_assert(cpu.f == (0x62 & 0xd7))
+    my_assert(cpu.f == 0x62)
 
     cpu.reset()
     cpu.a = 0x01
@@ -808,7 +808,7 @@ def test_cp_cpir():
     cpu.f = 0
     cpu.step()
     my_assert(cpu.a == 0x01)
-    my_assert(cpu.f == (0x23 & 0xd7))
+    my_assert(cpu.f == 0x23)
 
     # CP *
     reset_mem()
@@ -819,7 +819,7 @@ def test_cp_cpir():
     ram0[1] = 0x21 # 
     cpu.step()
     my_assert(cpu.a == 0xf0)
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
     my_assert(cpu.pc == 2)
 
     # CP (IX+*)
@@ -834,7 +834,7 @@ def test_cp_cpir():
     ram0[2] = 0x03
     cpu.step()
     my_assert(cpu.a == 0xf0)
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
     my_assert(cpu.pc == 3)
 
     # CPIR
@@ -855,7 +855,7 @@ def test_cp_cpir():
     my_assert(cpu.l == 0x11)
     my_assert(cpu.b == 0x20)
     my_assert(cpu.c == 0x08)
-    my_assert(cpu.f == (0x42 & 0xd7))
+    my_assert(cpu.f == 0x42)
     my_assert(cpu.pc == 2)
 
 def test_add():
@@ -868,7 +868,7 @@ def test_add():
     ram0[0] = 0x80
     cpu.step()
     my_assert(cpu.a == 0x11)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
     # ADD B
@@ -880,7 +880,7 @@ def test_add():
     ram0[0] = 0x81
     cpu.step()
     my_assert(cpu.a == 0x11)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
     # ADD L
@@ -892,7 +892,7 @@ def test_add():
     ram0[0] = 0x85
     cpu.step()
     my_assert(cpu.a == 0x11)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
     # ADD *
@@ -904,7 +904,7 @@ def test_add():
     ram0[1] = 0x21
     cpu.step()
     my_assert(cpu.a == 0x11)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 2)
 
     # ADC B
@@ -919,7 +919,7 @@ def test_add():
     ram0[1] = 0x88
     cpu.step()
     my_assert(cpu.a == 0x12)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 2)
 
     # ADD HL,BC [1]
@@ -934,7 +934,7 @@ def test_add():
     cpu.step()
     my_assert(cpu.h == 0x78)
     my_assert(cpu.l == 0xf3)
-    my_assert(cpu.f == (0x00 & 0xd7))
+    my_assert(cpu.f == 0x00)
     my_assert(cpu.pc == 1)
 
     # ADC HL,BC [2]
@@ -950,7 +950,7 @@ def test_add():
     cpu.step()
     my_assert(cpu.h == 0x8e)
     my_assert(cpu.l == 0x8f)
-    my_assert(cpu.f == (0x94 & 0xd7))
+    my_assert(cpu.f == 0x94)
     my_assert(cpu.pc == 2)
 
     # ADC HL,BC [3]
@@ -966,7 +966,7 @@ def test_add():
     cpu.step()
     my_assert(cpu.h == 0x8e)
     my_assert(cpu.l == 0x8e)
-    my_assert(cpu.f == (0x94 & 0xd7))
+    my_assert(cpu.f == 0x94)
     my_assert(cpu.pc == 2)
 
     # ADD A,(IX+*)
@@ -995,7 +995,7 @@ def test_add():
     ram0[1] = 0x09
     cpu.step()
     my_assert(cpu.ix == 0x8e8e)
-    my_assert(cpu.f == (0x94 & 0xd7))
+    my_assert(cpu.f == 0x94)
     my_assert(cpu.pc == 2)
 
     # ADD IX,BC [2]
@@ -1009,7 +1009,7 @@ def test_add():
     ram0[1] = 0x09
     cpu.step()
     my_assert(cpu.ix == 0x8e8e)
-    my_assert(cpu.f == (0x94 & 0xd7))
+    my_assert(cpu.f == 0x94)
     my_assert(cpu.pc == 2)
 
 def test_or():
@@ -1022,7 +1022,7 @@ def test_or():
     ram0[0] = 0xb0
     cpu.step()
     my_assert(cpu.a == 0xf1)
-    my_assert(cpu.f == (0x80 & 0xd7))
+    my_assert(cpu.f == 0x80)
     my_assert(cpu.pc == 1)
 
     # OR *
@@ -1034,7 +1034,7 @@ def test_or():
     ram0[1] = 0x21
     cpu.step()
     my_assert(cpu.a == 0xf1)
-    my_assert(cpu.f == (0x80 & 0xd7))
+    my_assert(cpu.f == 0x80)
     my_assert(cpu.pc == 2)
 
     # OR *
@@ -1046,7 +1046,7 @@ def test_or():
     ram0[1] = 0xf1
     cpu.step()
     my_assert(cpu.a == 0xff)
-    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.f == 0x84)
     my_assert(cpu.pc == 2)
 
 def test_and():
@@ -1059,7 +1059,7 @@ def test_and():
     ram0[0] = 0xa0
     cpu.step()
     my_assert(cpu.a == 0x20)
-    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.f == 0x10)
     my_assert(cpu.pc == 1)
 
     # AND *
@@ -1071,7 +1071,7 @@ def test_and():
     ram0[1] = 0x21
     cpu.step()
     my_assert(cpu.a == 0x20)
-    my_assert(cpu.f == (0x10 & 0xd7))
+    my_assert(cpu.f == 0x10)
     my_assert(cpu.pc == 2)
 
     # AND *
@@ -1083,7 +1083,7 @@ def test_and():
     ram0[1] = 0xf1
     cpu.step()
     my_assert(cpu.a == 0x71)
-    my_assert(cpu.f == (0x14 & 0xd7))
+    my_assert(cpu.f == 0x14)
     my_assert(cpu.pc == 2)
 
     # AND A,(IX+*)
@@ -1111,7 +1111,7 @@ def test_xor():
     ram0[0] = 0xa8
     cpu.step()
     my_assert(cpu.a == 0xd1)
-    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.f == 0x84)
     my_assert(cpu.pc == 1)
 
     # XOR *
@@ -1124,7 +1124,7 @@ def test_xor():
     ram0[1] = 0x21
     cpu.step()
     my_assert(cpu.a == 0xd1)
-    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.f == 0x84)
     my_assert(cpu.pc == 2)
 
     # XOR *
@@ -1136,7 +1136,7 @@ def test_xor():
     ram0[1] = 0xf1
     cpu.step()
     my_assert(cpu.a == 0x8e)
-    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.f == 0x84)
     my_assert(cpu.pc == 2)
 
 def test_out_in():
@@ -1340,7 +1340,7 @@ def test_sub():
     ram0[0] = 0x90
     cpu.step()
     my_assert(cpu.a == 0xf0 - 0x21)
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
     my_assert(cpu.pc == 1)
 
     # SUB (HL)
@@ -1354,7 +1354,7 @@ def test_sub():
     ram0[0] = 0x96
     cpu.step()
     my_assert(cpu.a == 0xf0 - 0x21)
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
     my_assert(cpu.pc == 1)
 
     # SBC B
@@ -1366,7 +1366,7 @@ def test_sub():
     ram0[0] = 0x98
     cpu.step()
     my_assert(cpu.a == 0xf0 - 0x21 - 1)
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
     my_assert(cpu.pc == 1)
 
     # SUB *
@@ -1378,7 +1378,7 @@ def test_sub():
     ram0[1] = 0x21
     cpu.step()
     my_assert(cpu.a == 0xf0 - 0x21)
-    my_assert(cpu.f == (0xb2 & 0xd7))
+    my_assert(cpu.f == 0xb2)
     my_assert(cpu.pc == 2)
 
     # SBC *
@@ -1390,7 +1390,7 @@ def test_sub():
     ram0[1] = 0x21
     cpu.step()
     my_assert(cpu.a == 0xcf)
-    my_assert(cpu.f == (0x92 & 0xd7))
+    my_assert(cpu.f == 0x92)
     my_assert(cpu.pc == 2)
 
     # SBC HL,BC
@@ -1409,7 +1409,7 @@ def test_sub():
     my_assert(cpu.c == 0x21)
     my_assert(cpu.h == 0x39)
     my_assert(cpu.l == 0x07)
-    my_assert(cpu.f == (0x03 & 0xd7))
+    my_assert(cpu.f == 0x03)
 
     # SBC HL,BC [1]
     reset_mem()
@@ -1425,7 +1425,7 @@ def test_sub():
     my_assert(cpu.pc == 2)
     my_assert(cpu.h == 0x8f)
     my_assert(cpu.l == 0x8f)
-    my_assert(cpu.f == (0x93 & 0xd7))
+    my_assert(cpu.f == 0x93)
 
     # SBC HL,BC [2]
     reset_mem()
@@ -1441,7 +1441,7 @@ def test_sub():
     my_assert(cpu.pc == 2)
     my_assert(cpu.h == 0x8f)
     my_assert(cpu.l == 0x90)
-    my_assert(cpu.f == (0x93 & 0xd7))
+    my_assert(cpu.f == 0x93)
 
 def test_inc():
     # INC b
@@ -1452,7 +1452,7 @@ def test_inc():
     ram0[0] = 0x04
     cpu.step()
     my_assert(cpu.b == 0x00)
-    my_assert(cpu.f == (0x51 & 0xd7))
+    my_assert(cpu.f == 0x51)
     my_assert(cpu.pc == 1)
 
     # INC b
@@ -1463,7 +1463,7 @@ def test_inc():
     ram0[0] = 0x04
     cpu.step()
     my_assert(cpu.b == 0x80)
-    my_assert(cpu.f == (0x95 & 0xd7))
+    my_assert(cpu.f == 0x95)
     my_assert(cpu.pc == 1)
 
     # INC b
@@ -1474,7 +1474,7 @@ def test_inc():
     ram0[0] = 0x04
     cpu.step()
     my_assert(cpu.b == 0x10)
-    my_assert(cpu.f == (0x11 & 0xd7))
+    my_assert(cpu.f == 0x11)
     my_assert(cpu.pc == 1)
 
     # INC de
@@ -1503,7 +1503,7 @@ def test_inc():
     my_assert(cpu.l == 0x33)
     my_assert(cpu.pc == 1)
     my_assert(cpu.read_mem(0x2233) == 0x00)
-    my_assert(cpu.f == (0x50 & 0xd7))
+    my_assert(cpu.f == 0x50)
 
 def test_dec():
     # DEC b
@@ -1514,7 +1514,7 @@ def test_dec():
     ram0[0] = 0x05
     cpu.step()
     my_assert(cpu.b == 0x7f)
-    my_assert(cpu.f == (0x17 & 0xd7))
+    my_assert(cpu.f == 0x17)
     my_assert(cpu.pc == 1)
 
     # DEC b
@@ -1525,7 +1525,7 @@ def test_dec():
     ram0[0] = 0x05
     cpu.step()
     my_assert(cpu.b == 0x03)
-    my_assert(cpu.f == (0x03 & 0xd7))
+    my_assert(cpu.f == 0x03)
     my_assert(cpu.pc == 1)
 
     # DEC de
@@ -1549,7 +1549,7 @@ def test_dec():
     ram0[0] = 0x3d
     cpu.step()
     my_assert(cpu.a == 0x7f)
-    my_assert(cpu.f == (0x17 & 0xd7))
+    my_assert(cpu.f == 0x17)
     my_assert(cpu.pc == 1)
 
 def test_rlca_rlc_rl_rla():
@@ -1561,7 +1561,7 @@ def test_rlca_rlc_rl_rla():
     ram0[0] = 0x07
     cpu.step()
     my_assert(cpu.a == 0xc3)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
     # RLCA
@@ -1572,7 +1572,7 @@ def test_rlca_rlc_rl_rla():
     ram0[0] = 0x07
     cpu.step()
     my_assert(cpu.a == 0xc3)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
     # RLC B
@@ -1584,7 +1584,7 @@ def test_rlca_rlc_rl_rla():
     ram0[1] = 0x00
     cpu.step()
     my_assert(cpu.b == 0xc3)
-    my_assert(cpu.f == (0x85 & 0xd7))
+    my_assert(cpu.f == 0x85)
     my_assert(cpu.pc == 2)
 
     # RLC B
@@ -1596,7 +1596,7 @@ def test_rlca_rlc_rl_rla():
     ram0[1] = 0x00
     cpu.step()
     my_assert(cpu.b == 0xc3)
-    my_assert(cpu.f == (0x85 & 0xd7))
+    my_assert(cpu.f == 0x85)
     my_assert(cpu.pc == 2)
 
     # RL B
@@ -1608,7 +1608,7 @@ def test_rlca_rlc_rl_rla():
     ram0[1] = 0x10
     cpu.step()
     my_assert(cpu.b == 0xe3)
-    my_assert(cpu.f == (0x80 & 0xd7))
+    my_assert(cpu.f == 0x80)
     my_assert(cpu.pc == 2)
 
     # RL B
@@ -1620,7 +1620,7 @@ def test_rlca_rlc_rl_rla():
     ram0[1] = 0x10
     cpu.step()
     my_assert(cpu.b == 0xe2)
-    my_assert(cpu.f == (0x84 & 0xd7))
+    my_assert(cpu.f == 0x84)
     my_assert(cpu.pc == 2)
 
     # RLA
@@ -1631,7 +1631,7 @@ def test_rlca_rlc_rl_rla():
     ram0[0] = 0x17
     cpu.step()
     my_assert(cpu.a == 0xc3)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
     # RLA
@@ -1642,7 +1642,7 @@ def test_rlca_rlc_rl_rla():
     ram0[0] = 0x17
     cpu.step()
     my_assert(cpu.a == 0xc2)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
 def test_di_ei():
@@ -1741,7 +1741,7 @@ def test_rrca():
     ram0[0] = 0x0f
     cpu.step()
     my_assert(cpu.a == 0xf0)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
     # RRCA
@@ -1752,7 +1752,7 @@ def test_rrca():
     ram0[0] = 0x0f
     cpu.step()
     my_assert(cpu.a == 0xf0)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
     my_assert(cpu.pc == 1)
 
 def test_rr():
@@ -1765,7 +1765,7 @@ def test_rr():
     ram0[1] = 0x18
     cpu.step()
     my_assert(cpu.pc == 2)
-    my_assert(cpu.f == (0x85 & 0xd7))
+    my_assert(cpu.f == 0x85)
     my_assert(cpu.b == 0xf0)
 
     # RR B
@@ -1778,7 +1778,7 @@ def test_rr():
     cpu.step()
     my_assert(cpu.pc == 2)
     my_assert(cpu.b == 0x70)
-    my_assert(cpu.f == (0x01 & 0xd7))
+    my_assert(cpu.f == 0x01)
 
 def test_rst():
     # RST
@@ -2052,7 +2052,7 @@ def test_srl():
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
 test__flags()
-#test__support()
+test__support()
 test_add()
 test_and()
 test_bit()

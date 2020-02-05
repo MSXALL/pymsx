@@ -97,6 +97,8 @@ class z80:
         self.set_flag_z(result == 0)
         self.set_flag_s(after_sign != 0)
 
+        self.set_flag_53(result)
+
         return result
 
     def flags_add_sub_cp16(self, is_sub, carry, org_val, value):
@@ -114,15 +116,18 @@ class z80:
 
         self.set_flag_c((result & 0x10000) != 0)
 
-        before_sign = org_val & 0x8000
-        value_sign = value & 0x8000
-        after_sign = result & 0x8000
-        self.set_flag_pv(after_sign != before_sign and ((before_sign != value_sign and is_sub) or (before_sign == value_sign and not is_sub)))
+        if carry:
+            after_sign = result & 0x8000
+            before_sign = org_val & 0x8000
+            value_sign = value & 0x8000
+            self.set_flag_pv(after_sign != before_sign and ((before_sign != value_sign and is_sub) or (before_sign == value_sign and not is_sub)))
+            self.set_flag_s(after_sign != 0)
 
         result &= 0xffff
 
         self.set_flag_z(result == 0)
-        self.set_flag_s(after_sign != 0)
+
+        self.set_flag_53(result >> 8)
 
         return result
 
@@ -321,7 +326,7 @@ class z80:
         self.main_jumps[0x3e] = self._ld_val_low
 
         self.main_jumps[0x0f] = self._rrca
-        self.main_jumps[0x1f] = self._rr
+        self.main_jumps[0x1f] = self._rra
         self.main_jumps[0x2f] = self._cpl
         self.main_jumps[0x3f] = self._ccf
 
@@ -413,7 +418,7 @@ class z80:
 
         self.main_jumps[0xcd] = self._call
         self.main_jumps[0xdd] = self._ix
-        self.main_jumps[0xed] = self._ed
+        self.main_jumps[0xed] = self.ed
         self.main_jumps[0xfd] = self._iy
 
         self.main_jumps[0xce] = self._add_a_val
@@ -474,6 +479,9 @@ class z80:
 
         for i in range(0x28, 0x30):
                 self.bits_jumps[i] = self._sra
+
+        for i in range(0x30, 0x38):
+                self.bits_jumps[i] = self._sll
 
         for i in range(0x38, 0x40):
                 self.bits_jumps[i] = self._srl
@@ -585,7 +593,7 @@ class z80:
             self.debug('TypeError IXY_BIT(%02x): %s' % (instr, te))
             assert False
 
-    def _ed(self, dummy):
+    def ed(self, dummy):
         try:
             instr = self.read_pc_inc()
             self.debug('EXT: %02x' % instr)
@@ -738,6 +746,11 @@ class z80:
         self.sp &= 0xffff
         self.write_mem(self.sp, v & 0xff)
 
+    def set_flag_53(self, value):
+        assert value >= 0 and value <= 255
+        self.f &= ~0x28
+        self.f |= value & 0x28
+
     def set_flag_c(self, v):
         assert v == False or v == True
         self.f &= ~(1 << 0)
@@ -803,7 +816,8 @@ class z80:
         out += 'n' if self.get_flag_n() else ''
         out += 'c' if self.get_flag_c() else ''
 
-        out += ' AF: %02x%02x, BC: %02x%02x, DE: %02x%02x, HL: %02x%02x, PC: %04x, SP: %04x, IX: %04x, IY: %04x / %d }' % (self.a, self.f, self.b, self.c, self.d, self.e, self.h, self.l, self.pc, self.sp, self.ix, self.iy, self.cycles)
+        out += ' | AF: %02x%02x, BC: %02x%02x, DE: %02x%02x, HL: %02x%02x, PC: %04x, SP: %04x, IX: %04x, IY: %04x' % (self.a, self.f, self.b, self.c, self.d, self.e, self.h, self.l, self.pc, self.sp, self.ix, self.iy)
+        out += ' | AF_: %02x%02x, BC_: %02x%02x, DE_: %02x%02x, HL_: %02x%02x | %d }' % (self.a_, self.f_, self.b_, self.c_, self.d_, self.e_, self.h_, self.l_, self.cycles)
 
         return out
 
@@ -813,6 +827,7 @@ class z80:
 
         (val, name) = self.get_src(src)
         self.a = self.flags_add_sub_cp(False, c, val)
+        self.set_flag_53(self.a)
 
         self.debug('%s %s' % ('ADC' if c else 'ADD', name))
 
@@ -823,6 +838,7 @@ class z80:
         self.set_flag_s(self.a >= 128)
         self.set_flag_n(False)
         self.set_flag_h(False)
+        self.set_flag_53(self.a)
 
     def _or(self, instr):
         src = instr & 7
@@ -848,6 +864,7 @@ class z80:
         self.set_flag_s(self.a >= 128)
         self.set_flag_n(False)
         self.set_flag_h(True)
+        self.set_flag_53(self.a)
 
     def _and(self, instr):
         src = instr & 7
@@ -873,6 +890,7 @@ class z80:
         self.set_flag_s(self.a >= 128)
         self.set_flag_n(False)
         self.set_flag_h(False)
+        self.set_flag_53(self.a)
 
     def _xor(self, instr):
         src = instr & 7
@@ -904,7 +922,6 @@ class z80:
 
         val <<= 1
 
-        self.f = 0
         self.set_flag_c(val > 255)
         self.set_flag_z(val == 0)
         self.set_flag_pv(self.parity(val & 0xff))
@@ -913,6 +930,29 @@ class z80:
         self.set_flag_h(False)
 
         val &= 255;
+        self.set_flag_53(val)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('SLA %s' % name)
+
+    def _sll(self, instr):
+        src = instr & 7
+        (val, name) = self.get_src(src)
+
+        val <<= 1
+        val |= 1 # only difference with sla
+
+        self.set_flag_c(val > 255)
+        self.set_flag_z(val == 0)
+        self.set_flag_pv(self.parity(val & 0xff))
+        self.set_flag_s((val & 128) == 128)
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        val &= 255;
+        self.set_flag_53(val)
 
         dst = src
         self.set_dst(dst, val)
@@ -928,7 +968,6 @@ class z80:
         val >>= 1
         val |= old_7
 
-        self.f = 0
         self.set_flag_z(val == 0)
         self.set_flag_pv(self.parity(val & 0xff))
         self.set_flag_s((val & 128) == 128)
@@ -936,6 +975,7 @@ class z80:
         self.set_flag_h(False)
 
         val &= 255;
+        self.set_flag_53(val)
 
         dst = src
         self.set_dst(dst, val)
@@ -1076,6 +1116,7 @@ class z80:
 
         if flag:
             self.pc += offset
+            self.pc &= 0xffff
             self.debug('JR %s,0x%04x' % (flag_name, self.pc))
 
         else:
@@ -1087,8 +1128,9 @@ class z80:
         self.b -= 1
         self.b &= 0xff
 
-        if self.b > 0:
+        if self.b != 0:
             self.pc += offset
+            self.pc &= 0xffff
             self.debug('DJNZ 0x%04x' % self.pc)
 
         else:
@@ -1099,6 +1141,7 @@ class z80:
 
         self.set_flag_n(True)
         self.set_flag_h(True)
+        self.set_flag_53(self.a)
 
         self.debug('CPL')
 
@@ -1107,6 +1150,7 @@ class z80:
         (val, name) = self.get_src(src)
 
         self.flags_add_sub_cp(True, False, val)
+        self.set_flag_53(val)
 
         self.debug('CP %s' % name)
 
@@ -1148,6 +1192,7 @@ class z80:
         self.set_flag_s(after < 0)
         self.set_flag_n(False)
         self.set_flag_h(not (after & 0x0f))
+        self.set_flag_53(after & 0xff)
 
     def _inc_high(self, instr):
         which = instr >> 4
@@ -1223,7 +1268,15 @@ class z80:
 
         (value, name) = self.get_pair(which)
 
+        org_f = self.f
         result = self.flags_add_sub_cp16(False, is_adc, org_val, value)
+        new_f = self.f  # hacky
+        self.f = org_f
+        self.set_flag_c((new_f & 1) == 1)
+        self.set_flag_n((new_f & 2) == 2)
+        self.set_flag_h((new_f & 16) == 16)
+
+        self.set_flag_53(result >> 8)
 
         (self.h, self.l) = self.u16(result)
 
@@ -1235,17 +1288,22 @@ class z80:
         v -= 1
         v &= 0xffff
         self.set_pair(which, v)
+        #self.set_flag_53(v >> 8)
         self.debug('DEC %s' % name)
 
     def dec_flags(self, before):
-        before = self.compl8(before)
-        after = self.compl8((before - 1) & 0xff)
+        after = before - 1
 
-        self.set_flag_z(after == 0)
-        self.set_flag_pv(before < 0 and after >= 0)
-        self.set_flag_s((after & 0x80) == 0x80)
         self.set_flag_n(True)
         self.set_flag_h((after & 0x0f) == 0x0f)
+        self.set_flag_z(after == 0x00)
+        self.set_flag_s((after & 0x80) == 0x80)
+
+        before_sign = before & 0x80
+        value_sign = -1 & 0x80
+        after_sign = after & 0x80
+        self.set_flag_pv(before_sign and not after_sign)
+        self.set_flag_53(after & 0xff)
 
     def _dec_high(self, instr):
         which = instr >> 4
@@ -1295,8 +1353,6 @@ class z80:
             assert False
 
         self.debug('DEC x')
-
-#--- flags
 
     def _rst(self, instr):
         un = instr & 8
@@ -1523,6 +1579,7 @@ class z80:
 
         self.write_mem(a, new_hl)
         self.a = new_a
+        self.set_flag_53(self.a)
         
         self.set_flag_h(False)
         self.set_flag_n(False)
@@ -1575,6 +1632,7 @@ class z80:
             self.debug('LD (DE),A')
         else:
             assert False
+        self.set_flag_53(self.a)
 
     def _ld_imem_from(self, instr):
         which = instr >> 4
@@ -1604,6 +1662,7 @@ class z80:
             self.set_flag_c(False)
 
         self.a &= 0xff
+        self.set_flag_53(self.a)
 
         self.debug('RLCA')
 
@@ -1623,6 +1682,7 @@ class z80:
             self.set_flag_c(False)
 
         self.a &= 0xff
+        self.set_flag_53(self.a)
 
         self.debug('RLA')
 
@@ -1643,6 +1703,7 @@ class z80:
             self.set_flag_c(False)
 
         val &= 0xff
+        self.set_flag_53(val)
 
         dst = src
         self.set_dst(dst, val)
@@ -1745,7 +1806,8 @@ class z80:
     def _cp_mem(self, instr):
         v = self.read_pc_inc()
 
-        self.flags_add_sub_cp(True, False, v)
+        result = self.flags_add_sub_cp(True, False, v)
+        self.set_flag_53(result)
 
         self.debug('CP 0x%02x' % v)
 
@@ -1827,6 +1889,8 @@ class z80:
         self.set_flag_z(val == 0)
         self.set_flag_s(val >= 128)
 
+        self.set_flag_53(val)
+
         dst = src
         self.set_dst(dst, val)
 
@@ -1846,6 +1910,8 @@ class z80:
         self.set_flag_pv(self.parity(val))
         self.set_flag_z(val == 0)
         self.set_flag_s(val >= 128)
+
+        self.set_flag_53(val)
 
         dst = src
         self.set_dst(dst, val)
@@ -1867,6 +1933,7 @@ class z80:
         self.set_flag_pv(self.parity(val))
         self.set_flag_z(val == 0)
         self.set_flag_s(val >= 128)
+        self.set_flag_53(val)
 
         dst = src
         self.set_dst(dst, val)
@@ -1902,6 +1969,8 @@ class z80:
         self.set_flag_c(True)
         self.set_flag_n(False)
         self.set_flag_h(False)
+        self.set_flag_53(self.a)
+        self.debug('SCF')
 
     def _ex_sp_hl(self, instr):
         hl = self.m16(self.h, self.l)
@@ -1919,10 +1988,24 @@ class z80:
         bit0 = self.a & 1
         self.a >>= 1
         self.a |= bit0 << 7
+        self.set_flag_53(self.a)
 
         self.set_flag_c(bit0 == 1)
 
         self.debug('RRCA')
+
+    def _rra(self, instr):
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        c = self.get_flag_c()
+        bit0 = self.a & 1
+        self.a >>= 1
+        self.a |= c << 7
+        self.set_flag_c(bit0 == 1)
+        self.set_flag_53(self.a)
+
+        self.debug('RRA')
 
     def _di(self, instr):
         self.interrupts = False
@@ -1933,9 +2016,12 @@ class z80:
         self.debug('EI')
 
     def _ccf(self, instr):
-        self.set_flag_c(not self.get_flag_c())
+        old_c = self.get_flag_c()
+        self.set_flag_c(not old_c)
         self.set_flag_n(False)
-        self.set_flag_h(False)
+        self.set_flag_h(old_c)
+
+        self.set_flag_53(self.a)
 
         self.debug('CCF')
 
@@ -1947,7 +2033,12 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(True)
 
-        self.set_flag_z((val & (1 << nr)) == 0)
+        z_pv = (val & (1 << nr)) == 0
+        self.set_flag_z(z_pv)
+        self.set_flag_pv(z_pv)
+        self.set_flag_s(nr == 7 and not self.get_flag_z())
+
+        self.set_flag_53(self.h if src == 6 else val)
 
         self.debug('BIT %d, %s' % (nr, src_name))
 
@@ -1959,11 +2050,12 @@ class z80:
         self.set_flag_h(False)
         self.set_flag_c((val & 1) == 1)
         self.set_flag_z(val == 0)
-        self.set_flag_s(val >= 128)
+        self.set_flag_s(False)
 
         val >>= 1
 
         self.set_flag_pv(self.parity(val))
+        self.set_flag_53(val)
 
         dst = src
         self.set_dst(dst, val)
@@ -1999,23 +2091,19 @@ class z80:
     def _sbc_pair(self, instr):
         which = (instr >> 4) - 4
         (v, name) = self.get_pair(which)
-
         before = self.m16(self.h, self.l)
-        value = v + self.get_flag_c()
-        after = before - value
 
-        self.set_flag_c((after & 0x10000) == 0x10000)
-        self.set_flag_z((after & 0xffff) == 0)
-        self.set_flag_n(True)
-        self.set_flag_s((after & 0x8000) == 0x8000)
-        self.set_flag_h((((before & 0x0fff) - (value & 0x0fff)) & 0x1000) == 0x1000)
+        org_f = self.f
+        result = self.flags_add_sub_cp16(True, True, before, v)
+        new_f = self.f  # hacky
+        self.f = org_f
+        self.set_flag_c((new_f & 1) == 1)
+        self.set_flag_n((new_f & 2) == 2)
+        self.set_flag_h((new_f & 16) == 16)
 
-        before_sign = before & 0x8000;
-        value_sign = value & 0x8000;
-        after_sign = after & 0x8000;
-        self.set_flag_pv(before_sign != value_sign and after_sign != before_sign)
+        self.set_flag_53(result >> 8)
  
-        self.set_pair(2, after & 0xffff)
+        self.set_pair(2, result & 0xffff)
 
         self.debug('SUB HL,%s' % name)
 
@@ -2026,6 +2114,7 @@ class z80:
         flags_add_sub_cp(True, False, org_a)
 
         self.a = (-org_a) & 0xff
+        self.set_flag_53(self.a)
 
         self.debug('NEG')
 

@@ -4,6 +4,7 @@
 # released under AGPL v3.0
 
 import sys
+import traceback
 from inspect import getframeinfo, stack
 from z80 import z80
 
@@ -21,6 +22,8 @@ slots.append(( ram2, None, None, None ))
 slots.append(( ram3, None, None, None ))
 
 pages = [ 0, 0, 0, 0]
+
+final = { }
 
 def reset_mem():
     ram0 = [ 0 ] * 16384
@@ -49,25 +52,54 @@ def read_io(a):
 def write_io(a, v):
     io[a] = v
 
-def debug(x):
-#    print('%s <%02x/%02x>' % (x, io[0xa8], 0), file=sys.stderr)
-    pass
+debug_msgs = []
 
-def my_assert(r):
+def debug(x):
+    debug_msgs.append(x)
+
+def flag_str(f):
+    flags = ''
+
+    flags += 's1 ' if f & 128 else 's0 '
+    flags += 'z1 ' if f & 64 else 'z0 '
+    flags += '51 ' if f & 32 else '50 '
+    flags += 'h1 ' if f & 16 else 'h0 '
+    flags += '31 ' if f & 8 else '30 '
+    flags += 'P1 ' if f & 4 else 'P0 '
+    flags += 'n1 ' if f & 2 else 'n0 '
+    flags += 'c1 ' if f & 1 else 'c0 '
+
+    return flags
+
+def my_assert(f, r, what):
     if not r:
+        print(' *** FAIL FOR %s (%s) ***' % (f['id'], what))
+        print('==========================')
+        print('CURRENT')
+        print('-------')
         print(cpu.reg_str())
         caller = getframeinfo(stack()[1][0])
-        flags = ''
-        for i in range(0, 8):
-            if i == (7 - 5) or i == (7 - 3):
-                flags += 'x'
-            elif cpu.f & (128 >> i):
-                flags += '1'
-            else:
-                flags += '0'
-        print(flags)
+        print('Flags: %s' % flag_str(cpu.f))
         print('%s:%d' % (caller.filename, caller.lineno))
-        sys.exit(1)
+        #for d in debug_msgs:
+        #    print(d)
+        print('')
+        print('EXPECTED')
+        print('--------')
+        print('Flags: %s' % flag_str(f['r1'][0]))
+        print('AF %04x' % f['r1'][0])
+        print('BC %04x' % f['r1'][1])
+        print('DE %04x' % f['r1'][2])
+        print('HL %04x' % f['r1'][3])
+        print('AF_ %04x' % f['r1'][4])
+        print('BC_ %04x' % f['r1'][5])
+        print('DE_ %04x' % f['r1'][6])
+        print('HL_ %04x' % f['r1'][7])
+        print('IX %04x' % f['r1'][8])
+        print('IY %04x' % f['r1'][9])
+        print('SP %04x' % f['r1'][10])
+        print('PC %04x' % f['r1'][11])
+        # sys.exit(1)
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
@@ -98,9 +130,80 @@ cpu = z80(read_mem, write_mem, read_io, write_io, debug)
 
 # Finally, -1 to end the test. Blank lines may follow before the next test.
 
+### loaf tests.expected and put it in a dictionary for later comparing ###
+
+fh = open('tests.expected', 'r')
+while True:
+    while True:
+        descr = fh.readline()
+        if not descr:
+            break
+
+        descr = descr.rstrip('\n').rstrip(' ')
+        if descr != '':
+            break
+    if not descr:
+        break
+
+    while True:
+        event = fh.readline()
+        if not event:
+            break
+
+        event = event.rstrip('\n').rstrip(' ')
+        if event[0] != ' ' and event[0] != '\t':
+            break
+
+    next_line = event
+
+    test_id = descr
+    final[test_id] = { }
+    final[test_id]['id'] = test_id  # hack
+
+    registers1 = next_line
+    parts = registers1.split()
+    regs1 = [int(x, 16) for x in parts]
+    final[test_id]['r1'] = regs1
+
+    registers2 = fh.readline().rstrip('\n').rstrip(' ')
+    parts = registers2.split()
+    regs2 = [int(x, 16) for x in parts]
+    final[test_id]['r2'] = regs2
+
+    mem = []
+
+    while True:
+        setup = fh.readline()
+        setup = setup.rstrip('\n')
+        if setup == '-1':
+            break
+
+        parts = setup.split()
+        if len(parts) == 0:
+            break
+
+        a = int(parts[0], 16)
+        first = a
+
+        for b in parts[1:]:
+            if b == '':
+                continue
+
+            if b == '-1':
+                break
+
+            mem.append((a, int(b, 16)))
+            a += 1
+            a &= 0xffff
+
+    final[test_id]['mem'] = mem
+
+### process tests.in & execute tests in it ###
+
 fh = open('tests.in', 'r')
 
 while True:
+    debug_msgs = []
     cpu.reset()
     reset_mem()
 
@@ -114,6 +217,7 @@ while True:
             break
     if not descr:
         break
+
     print(descr)
 
     registers1 = fh.readline().rstrip('\n').rstrip(' ')
@@ -132,6 +236,8 @@ while True:
     cpu.sp = regs1[10]
     cpu.pc = regs1[11]
 
+    f = final[descr]
+
     registers2 = fh.readline().rstrip('\n').rstrip(' ')
     parts = registers2.split()
     # print(parts)
@@ -147,8 +253,6 @@ while True:
         if len(parts) == 0:
             break
 
-        # print(parts)
-
         a = int(parts[0], 16)
         first = a
 
@@ -163,7 +267,36 @@ while True:
             a += 1
             a &= 0xffff
 
-    # print(regs2)
+    ok = False
 
-    for i in range(0, regs2[6]):
-        cpu.step()
+    try:
+        for i in range(0, regs2[6]):
+            cpu.step()
+
+        ok = True
+    except:
+        traceback.print_exc(file=sys.stdout)
+        my_assert(f, False, 'exec')
+
+    if ok:
+        # verify registers
+        (expa, expf) = cpu.u16(f['r1'][0])
+        my_assert(f, cpu.a == expa, 'a')
+        my_assert(f, cpu.f == expf, 'f')
+        my_assert(f, (cpu.b, cpu.c) == cpu.u16(f['r1'][1]), 'bc')
+        my_assert(f, (cpu.d, cpu.e) == cpu.u16(f['r1'][2]), 'de')
+        my_assert(f, (cpu.h, cpu.l) == cpu.u16(f['r1'][3]), 'hl')
+        my_assert(f, (cpu.a_, cpu.f_) == cpu.u16(f['r1'][4]), 'af_')
+        my_assert(f, (cpu.b_, cpu.c_) == cpu.u16(f['r1'][5]), 'bc_')
+        my_assert(f, (cpu.d_, cpu.e_) == cpu.u16(f['r1'][6]), 'de_')
+        my_assert(f, (cpu.h_, cpu.l_) == cpu.u16(f['r1'][7]), 'hl_')
+        my_assert(f, cpu.ix == f['r1'][8], 'ix')
+        my_assert(f, cpu.iy == f['r1'][9], 'iy')
+        my_assert(f, cpu.sp == f['r1'][10], 'sp')
+        my_assert(f, cpu.pc == f['r1'][11], 'pc')
+
+        # verify memory
+        m = f['mem']
+
+        for c in m:
+            my_assert(f, cpu.read_mem(c[0]) == c[1], 'mem: %04x = %02x' % (c[0], c[1])) 
