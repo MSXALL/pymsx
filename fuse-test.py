@@ -79,7 +79,7 @@ def my_assert(f, r, what):
         print('-------')
         print(cpu.reg_str())
         caller = getframeinfo(stack()[1][0])
-        print('Flags: %s' % flag_str(cpu.f))
+        print('Flags: %s, memptr: %04x' % (flag_str(cpu.f), cpu.memptr))
         print('%s:%d' % (caller.filename, caller.lineno))
         #for d in debug_msgs:
         #    print(d)
@@ -99,6 +99,7 @@ def my_assert(f, r, what):
         print('IY %04x' % f['r1'][9])
         print('SP %04x' % f['r1'][10])
         print('PC %04x' % f['r1'][11])
+        print('memptr %04x' % f['r1'][12])
         # sys.exit(1)
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug)

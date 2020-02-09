@@ -43,7 +43,7 @@ disk_sig = None
 
 gen_sig = None
 gen_rom_file = 'athletic.rom'
-gen_rom_file = '../../msx/trunk/docs/testram.rom'
+#gen_rom_file = '../../msx/trunk/docs/testram.rom'
 gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
 gen_sig = gen_obj.get_signature() if gen_obj else None
 

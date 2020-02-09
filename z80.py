@@ -333,6 +333,7 @@ class z80:
 
         for i in range(0x40, 0x80):
             self.main_jumps[i] = self._ld
+        self.main_jumps[i] = self._halt  # !!!
 
         for i in range(0x80, 0x90):
             self.main_jumps[i] = self._add
@@ -1073,7 +1074,8 @@ class z80:
 
         if flag:
             self.pc = a
-            self.memptr = a
+
+        self.memptr = a
 
         if flag_name:
             self.debug('JP %s,0x%04x' % (flag_name, a))
@@ -1407,13 +1409,14 @@ class z80:
             a = self.read_pc_inc_16()
             v = self.read_mem_16(a)
             (self.h, self.l) = self.u16(v)
+            self.memptr = (a + 1) & 0xffff
             self.debug('LD HL,(0x%04x)' % a)
 
         elif which == 3:
             a = self.read_pc_inc_16()
             self.a = self.read_mem(a)
+            self.memptr = (a + 1) & 0xffff
             self.debug('LD A, (0x%04x)' % a)
-            self.memptr = self.pc
 
         else:
             assert False
@@ -1670,14 +1673,15 @@ class z80:
             a = self.read_pc_inc_16()
             self.write_mem(a, self.l)
             self.write_mem((a + 1) & 0xffff, self.h)
+            self.memptr = a + 1
             self.debug('LD (0x%04x),HL' % a)
 
         elif which == 3:  # LD (**), A
             a = self.read_pc_inc_16()
             self.write_mem(a, self.a)
-            self.debug('LD (0x%04x),A' % a)
-            self.memptr = self.pc & 0xff
+            self.memptr = (a + 1) & 0xff
             self.memptr |= self.a << 8
+            self.debug('LD (0x%04x),A' % a)
 
         else:
             assert False
@@ -1987,6 +1991,7 @@ class z80:
 
     def _ret_always(self, instr):
         self.pc = self.pop()
+        self.memptr = self.pc
 
         self.debug('RET')
 
@@ -2003,7 +2008,8 @@ class z80:
         if flag:
             self.push(self.pc)
             self.pc = a
-            self.memptr = self.pc
+
+        self.memptr = a
 
         self.debug('CALL %s,0x%04x' % (flag_name, a))
 
@@ -2523,3 +2529,7 @@ class z80:
         self.pc = self.m16(self.h, self.l)
 
         self.debug('JP (HL)')
+
+    def _halt(self, instr):
+        self.pc = (self.pc - 1) & 0xffff
+        print('HALT')
