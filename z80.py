@@ -464,6 +464,8 @@ class z80:
             self.debug('AssertionError main(%02x): %s' % (instr, ae))
             assert False
 
+        return took
+
     def bits(self, dummy):
         try:
             instr = self.read_pc_inc()

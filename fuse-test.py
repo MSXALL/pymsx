@@ -7,6 +7,7 @@ import sys
 import traceback
 from inspect import getframeinfo, stack
 from z80 import z80
+from screen_kb_dummy import screen_kb_dummy
 
 io = [ 0 ] * 256
 
@@ -102,7 +103,10 @@ def my_assert(f, r, what):
         print('memptr %04x' % f['r1'][12])
         # sys.exit(1)
 
-cpu = z80(read_mem, write_mem, read_io, write_io, debug)
+dk = screen_kb_dummy(io)
+dk.start()
+
+cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)
 
 # tests.in
 # --------
@@ -169,6 +173,7 @@ while True:
     registers2 = fh.readline().rstrip('\n').rstrip(' ')
     parts = registers2.split()
     regs2 = [int(x, 16) for x in parts]
+    regs2[6] = int(parts[6])
     final[test_id]['r2'] = regs2
 
     mem = []
@@ -272,8 +277,10 @@ while True:
     ok = False
 
     try:
-        for i in range(0, regs2[6]):
-            cpu.step()
+        ccnt = 0
+
+        while ccnt < regs2[6]:
+            ccnt += cpu.step()
 
         ok = True
     except:
