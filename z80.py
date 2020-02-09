@@ -1180,6 +1180,7 @@ class z80:
         if self.b != 0:
             self.pc += offset
             self.pc &= 0xffff
+            self.memptr = self.pc
             self.debug('DJNZ 0x%04x [%d / %02x]' % (self.pc, offset, offset))
 
             cycles = 13
@@ -1188,8 +1189,6 @@ class z80:
             self.debug('DJNZ 0x%04x NOT TAKEN' % self.pc)
 
             cycles = 8
-
-        self.memptr = self.pc
 
         return cycles
 
