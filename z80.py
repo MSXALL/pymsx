@@ -1950,6 +1950,7 @@ class z80:
         dst = instr & 0x7
         if dst == 6:
             self.write_mem(a, val)
+            dst_name = '(HL)'
 
         else:
             dst_name = self.set_dst(dst, val)
