@@ -335,7 +335,7 @@ class z80:
 
         for i in range(0x40, 0x80):
             self.main_jumps[i] = self._ld
-        self.main_jumps[i] = self._halt  # !!!
+        self.main_jumps[0x76] = self._halt  # !!!
 
         for i in range(0x80, 0x90):
             self.main_jumps[i] = self._add
@@ -2705,5 +2705,4 @@ class z80:
 
     def _halt(self, instr):
         self.pc = (self.pc - 1) & 0xffff
-        print('HALT')
         return 4

@@ -82,8 +82,6 @@ def my_assert(f, r, what):
         caller = getframeinfo(stack()[1][0])
         print('Flags: %s, memptr: %04x' % (flag_str(cpu.f), cpu.memptr))
         print('%s:%d' % (caller.filename, caller.lineno))
-        #for d in debug_msgs:
-        #    print(d)
         print('')
         print('EXPECTED')
         print('--------')
@@ -101,6 +99,9 @@ def my_assert(f, r, what):
         print('SP %04x' % f['r1'][10])
         print('PC %04x' % f['r1'][11])
         print('memptr %04x' % f['r1'][12])
+        for d in debug_msgs:
+            print(d)
+        print('')
         # sys.exit(1)
 
 dk = screen_kb_dummy(io)
@@ -249,6 +250,7 @@ while True:
     parts = registers2.split()
     # print(parts)
     regs2 = [int(x, 16) for x in parts]
+    regs2[6] = int(parts[6])
 
     while True:
         setup = fh.readline()
