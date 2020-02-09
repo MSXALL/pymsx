@@ -16,9 +16,6 @@ class screen_kb_pygame(screen_kb):
 
         super(screen_kb_pygame, self).__init__(io)
 
-    def init_kb(self):
-        pass  # FIXME
-
     def rgb_to_i(self, r, g, b):
         return (r << 16) | (g << 8) | b
 
@@ -33,26 +30,35 @@ class screen_kb_pygame(screen_kb):
     def stop2(self):
         pass
 
+    def poll_kb(self):
+        events = pygame.event.get()
+
+        for event in events:
+            c = -1
+
+            if event.type == pygame.QUIT:
+                self.stop_flag = True
+                break
+
+            elif event.type == pygame.KEYUP:
+                c = event.key
+
+                if c == 13 or c == 10:
+                    print('MARKER', file=sys.stderr)
+
+                self.k_lock.acquire()
+                self.keyboard_queue.append(c)
+                self.k_lock.release()
+
     def run(self):
         while not self.stop_flag:
             with self.cv:
+                self.poll_kb()
+
                 while self.redraw == False and self.stop_flag == False:
-                    c = -1  # FIXME
-                    events = pygame.event.get()
-                    for event in events:
-                        if event.type == pygame.QUIT:
-                            self.stop_flag = True
-                            break
+                    self.poll_kb()
 
-                    if c != -1:
-                        if c == 13 or c == 10:
-                            print('MARKER', file=sys.stderr)
-
-                        self.k_lock.acquire()
-                        self.keyboard_queue.append(c)
-                        self.k_lock.release()
-
-                    self.cv.wait()
+                    self.cv.wait(0.02)
 
                 self.redraw = False
 
@@ -226,6 +232,3 @@ class screen_kb_pygame(screen_kb):
                 #self.win.addstr(25, 0, msg)
                 pass  # FIXME
             self.debug_msg_lock.release()
-
-    def get_keyboard(self):
-        return 255  # FIXME
