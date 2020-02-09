@@ -10,8 +10,8 @@ import time
 from screen_kb import screen_kb
 
 class screen_kb_ncurses(screen_kb):
-    def __init__(self, cpu, io):
-        super(screen_kb_ncurses, self).__init__(cpu, io)
+    def __init__(self, io):
+        super(screen_kb_ncurses, self).__init__(io)
 
     def init_kb(self):
         self.kb_last_c = None
@@ -82,8 +82,6 @@ class screen_kb_ncurses(screen_kb):
     def run(self):
         while not self.stop_flag:
             with self.cv:
-                t = time.time()
-
                 while self.redraw == False and self.stop_flag == False:
                     c = self.win.getch()
 
@@ -95,13 +93,7 @@ class screen_kb_ncurses(screen_kb):
                         self.keyboard_queue.append(c)
                         self.k_lock.release()
 
-                    self.cv.wait(0.02)
-
-                    now = time.time()
-                    if now - t >= 0.02 and self.interrupts_enabled():
-                        self.cpu.interrupt()
-                        self.registers[2] |= 128
-                        t = now
+                    self.cv.wait()
 
                 self.redraw = False
 

@@ -123,7 +123,7 @@ def write_mem(a, v):
     slot[0][a & 0x3fff] = v
 
 def read_io(a):
-    debug('Get I/O register %02x' % a)
+    # debug('Get I/O register %02x' % a)
 
     if (a >= 0x98 and a <= 0x9b) or a == 0xa9:
         return dk.read_io(a)
@@ -136,7 +136,7 @@ def read_io(a):
 def write_io(a, v):
     assert v >= 0 and v <= 255
 
-    debug('Set I/O register %02x to %02x' % (a, v))
+    #debug('Set I/O register %02x to %02x' % (a, v))
 
     if a == 0x91:  # printer out
         # FIXME handle strobe
@@ -160,10 +160,10 @@ def cpu_thread():
     while not stop_flag:
         cpu.step()
 
-cpu = z80(read_mem, write_mem, read_io, write_io, debug)
-
-dk = screen_kb_pygame(cpu, io)
+dk = screen_kb_pygame(io)
 dk.start()
+
+cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)
 
 t = threading.Thread(target=cpu_thread)
 t.start()

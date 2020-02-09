@@ -8,7 +8,7 @@ import threading
 import time
 
 class screen_kb(threading.Thread):
-    def __init__(self, cpu, io):
+    def __init__(self, io):
         self.ram = [ 0 ] * 16384
         self.vdp_rw_pointer = 0
         self.vdp_addr_state = False
@@ -17,7 +17,6 @@ class screen_kb(threading.Thread):
         self.redraw = False
         self.cv = threading.Condition()
         self.stop_flag = False
-        self.cpu = cpu
         self.vdp_read_ahead = 0
         self.io = io
 
@@ -40,6 +39,9 @@ class screen_kb(threading.Thread):
 
     def interrupts_enabled(self):
         return (self.registers[0] & 1) == 1
+
+    def interrupt(self):
+        self.registers[2] |= 128
 
     def video_mode(self):
         m1 = (self.registers[1] >> 4) & 1;

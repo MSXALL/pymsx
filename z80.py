@@ -4,12 +4,13 @@
 import time
 
 class z80:
-    def __init__(self, read_mem, write_mem, read_io, write_io, debug):
+    def __init__(self, read_mem, write_mem, read_io, write_io, debug, screen):
         self.read_mem = read_mem
         self.write_mem = write_mem
         self.read_io = read_io
         self.write_io = write_io
         self.debug_out = debug
+        self.screen = screen
 
         self.init_main()
         self.init_xy()
@@ -38,6 +39,7 @@ class z80:
         self.memptr = 0xffff
 
         self.cycles = 0
+        self.interrupt_cycles = 0
         self.int = False
 
     def ui(self, which):
@@ -434,6 +436,11 @@ class z80:
         self.main_jumps[0xff] = self._rst
 
     def step(self):
+        if self.interrupt_cycles >= 3579545 / 50:
+            self.screen.interrupt()
+            self.interrupt()
+            self.interrupt_cycles = 0
+
         if self.int:
             self.int = False
             self.debug('Interrupt %f' % time.time())
@@ -446,6 +453,8 @@ class z80:
             took = self.main_jumps[instr](instr)
             assert took != None
             self.cycles += took
+
+            self.interrupt_cycles += took
 
         except TypeError as te:
             self.debug('TypeError main(%02x): %s' % (instr, te))
