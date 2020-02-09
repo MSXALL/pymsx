@@ -235,6 +235,7 @@ while True:
     cpu.iy = regs1[9]
     cpu.sp = regs1[10]
     cpu.pc = regs1[11]
+    cpu.memptr = regs1[12]
 
     f = final[descr]
 
@@ -294,6 +295,7 @@ while True:
         my_assert(f, cpu.iy == f['r1'][9], 'iy')
         my_assert(f, cpu.sp == f['r1'][10], 'sp')
         my_assert(f, cpu.pc == f['r1'][11], 'pc')
+        my_assert(f, cpu.memptr == f['r1'][12], 'memptr')
 
         # verify memory
         m = f['mem']
