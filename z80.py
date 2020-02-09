@@ -2417,6 +2417,7 @@ class z80:
     def _cp_im_ixy(self, instr, is_ix):
         offset = self.compl8(self.read_pc_inc())
         a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
+        self.memptr = a
 
         v  = self.read_mem(a)
 
@@ -2427,6 +2428,7 @@ class z80:
     def _and_a_ixy_deref(self, instr, is_ix):
         offset = self.compl8(self.read_pc_inc())
         a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
+        self.memptr = a
 
         self.a &= self.read_mem(a)
 
