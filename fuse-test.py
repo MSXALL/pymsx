@@ -213,8 +213,6 @@ fh = open('tests.in', 'r')
 
 while True:
     debug_msgs = []
-    cpu.reset()
-    reset_mem()
 
     while True:
         descr = fh.readline()
@@ -228,6 +226,9 @@ while True:
         break
 
     print(descr)
+
+    cpu.reset()
+    reset_mem()
 
     registers1 = fh.readline().rstrip('\n').rstrip(' ')
     parts = registers1.split()

@@ -453,7 +453,6 @@ class z80:
             took = self.main_jumps[instr](instr)
             assert took != None
             self.cycles += took
-
             self.interrupt_cycles += took
 
         except TypeError as te:
