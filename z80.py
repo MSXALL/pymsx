@@ -522,6 +522,7 @@ class z80:
         self.ixy_jumps[0x29] = self._add_pair_ixy
         self.ixy_jumps[0x2a] = self._ld_ixy_from_mem
         self.ixy_jumps[0x2b] = self._dec_ixy
+        self.ixy_jumps[0x35] = self._dec_deref_ixy
         self.ixy_jumps[0x39] = self._add_pair_ixy
         self.ixy_jumps[0x46] = self._ld_X_ixy_deref
         self.ixy_jumps[0x4e] = self._ld_X_ixy_deref
@@ -2600,6 +2601,22 @@ class z80:
 
         self.debug('AND (I%s + *)' % 'X' if is_ix else 'Y')
         return 19
+
+    def _dec_deref_ixy(self, which, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+
+        v = self.read_mem(a)
+
+        self.dec_flags(v)
+        v = (v - 1) & 0xff
+
+        self.write_mem(a, v)
+
+        self.debug('DEC (IX+*)')
+        return 23
 
     def _ld_X_ixy_deref(self, which, is_ix):
         offset = self.compl8(self.read_pc_inc())
