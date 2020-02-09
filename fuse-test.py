@@ -284,7 +284,6 @@ while True:
         # verify registers
         (expa, expf) = cpu.u16(f['r1'][0])
         my_assert(f, cpu.a == expa, 'a')
-        my_assert(f, cpu.f == expf, 'f')
         my_assert(f, (cpu.b, cpu.c) == cpu.u16(f['r1'][1]), 'bc')
         my_assert(f, (cpu.d, cpu.e) == cpu.u16(f['r1'][2]), 'de')
         my_assert(f, (cpu.h, cpu.l) == cpu.u16(f['r1'][3]), 'hl')
@@ -296,6 +295,7 @@ while True:
         my_assert(f, cpu.iy == f['r1'][9], 'iy')
         my_assert(f, cpu.sp == f['r1'][10], 'sp')
         my_assert(f, cpu.pc == f['r1'][11], 'pc')
+        my_assert(f, cpu.f == expf, 'f')
         my_assert(f, cpu.memptr == f['r1'][12], 'memptr')
 
         # verify memory
