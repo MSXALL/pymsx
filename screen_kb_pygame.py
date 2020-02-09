@@ -57,7 +57,7 @@ class screen_kb_pygame(screen_kb):
                     self.cv.wait(0.02)
 
                     now = time.time()
-                    if now - t >= 0.02:
+                    if now - t >= 0.02 and self.interrupts_enabled():
                         self.cpu.interrupt()
                         self.registers[2] |= 128
                         t = now

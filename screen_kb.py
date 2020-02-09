@@ -38,6 +38,9 @@ class screen_kb(threading.Thread):
     def init_screen(self):
         pass
 
+    def interrupts_enabled(self):
+        return (self.registers[0] & 1) == 1
+
     def video_mode(self):
         m1 = (self.registers[1] >> 4) & 1;
         m2 = (self.registers[1] >> 3) & 1;
