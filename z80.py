@@ -833,7 +833,7 @@ class z80:
         out += 'n' if self.get_flag_n() else ''
         out += 'c' if self.get_flag_c() else ''
 
-        out += ' | AF: %02x%02x, BC: %02x%02x, DE: %02x%02x, HL: %02x%02x, PC: %04x, SP: %04x, IX: %04x, IY: %04x' % (self.a, self.f, self.b, self.c, self.d, self.e, self.h, self.l, self.pc, self.sp, self.ix, self.iy)
+        out += ' | AF: %02x%02x, BC: %02x%02x, DE: %02x%02x, HL: %02x%02x, PC: %04x, SP: %04x, IX: %04x, IY: %04x, memptr: %04x' % (self.a, self.f, self.b, self.c, self.d, self.e, self.h, self.l, self.pc, self.sp, self.ix, self.iy, self.memptr)
         out += ' | AF_: %02x%02x, BC_: %02x%02x, DE_: %02x%02x, HL_: %02x%02x | %d }' % (self.a_, self.f_, self.b_, self.c_, self.d_, self.e_, self.h_, self.l_, self.cycles)
 
         return out
