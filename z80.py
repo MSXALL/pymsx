@@ -565,13 +565,27 @@ class z80:
         self.ixy_jumps[0x84] = self._add_a_ixy_h
         self.ixy_jumps[0x85] = self._add_a_ixy_l
         self.ixy_jumps[0x86] = self._add_a_deref_ixy
-        self.ixy_jumps[0x88] = self._sub_a_ixy_hl
-        self.ixy_jumps[0x89] = self._sub_a_ixy_hl
         self.ixy_jumps[0x8c] = self._adc_a_ixy_hl
         self.ixy_jumps[0x8d] = self._adc_a_ixy_hl
         self.ixy_jumps[0x8e] = self._adc_a_ixy_deref
+        self.ixy_jumps[0x94] = self._sub_a_ixy_hl
+        self.ixy_jumps[0x95] = self._sub_a_ixy_hl
+        self.ixy_jumps[0x96] = self._sub_a_ixy_deref
+        self.ixy_jumps[0x9c] = self._sbc_a_ixy_hl
+        self.ixy_jumps[0x9d] = self._sbc_a_ixy_hl
+        self.ixy_jumps[0x9e] = self._sub_a_ixy_deref
+        self.ixy_jumps[0xa4] = self._and_a_ixy_hl
+        self.ixy_jumps[0xa5] = self._and_a_ixy_hl
         self.ixy_jumps[0xa6] = self._and_a_ixy_deref
-        self.ixy_jumps[0xbe] = self._cp_im_ixy
+        self.ixy_jumps[0xac] = self._xor_a_ixy_hl
+        self.ixy_jumps[0xad] = self._xor_a_ixy_hl
+        self.ixy_jumps[0xae] = self._xor_a_ixy_deref
+        self.ixy_jumps[0xb4] = self._or_a_ixy_hl
+        self.ixy_jumps[0xb5] = self._or_a_ixy_hl
+        self.ixy_jumps[0xb6] = self._or_a_ixy_deref
+        self.ixy_jumps[0xbc] = self._cp_a_ixy_hl
+        self.ixy_jumps[0xbd] = self._cp_a_ixy_hl
+        self.ixy_jumps[0xbe] = self._cp_a_ixy_deref
         self.ixy_jumps[0xcb] = self.ixy_bit
         self.ixy_jumps[0xe1] = self._pop_ixy
         self.ixy_jumps[0xe5] = self._push_ixy
@@ -2623,18 +2637,6 @@ class z80:
         self.debug('CPIR')
         return 21  # FIXME or 16?
 
-    def _cp_im_ixy(self, instr, is_ix):
-        offset = self.compl8(self.read_pc_inc())
-        a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
-        self.memptr = a
-
-        v  = self.read_mem(a)
-
-        self.flags_add_sub_cp(True, False, v)
-
-        self.debug('CP (I%s + *)' % 'X' if is_ix else 'Y')
-        return 19
-
     def _and_a_ixy_deref(self, instr, is_ix):
         offset = self.compl8(self.read_pc_inc())
         a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
@@ -3043,3 +3045,105 @@ class z80:
         self.debug('ACD A,(I%s%s + 0%02xh)' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H', offset & 0xff))
 
         return 19
+
+    def _sub_a_ixy_deref(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+
+        v = self.read_mem(a)
+ 
+        self.a = self.flags_add_sub_cp(True, False, v)
+        self.debug('SUB A,(I%s%s + 0%02xh)' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H', offset & 0xff))
+
+        return 19
+
+    def _sbc_a_ixy_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+
+        v = ixy & 255 if instr & 1 else ixy >> 8
+
+        self.a = self.flags_add_sub_cp(True, True, v)
+        self.debug('SBC A,I%s%s' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H'))
+
+        return 8
+
+    def _and_a_ixy_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        v = ixy & 255 if instr & 1 else ixy >> 8
+
+        self.a &= v
+        self.and_flags()
+
+        self.debug('AND A,I%s%s' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H'))
+
+        return 8
+
+    def _xor_a_ixy_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        v = ixy & 255 if instr & 1 else ixy >> 8
+
+        self.a ^= v
+        self.xor_flags()
+
+        self.debug('XOR A,I%s%s' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H'))
+
+        return 8
+
+    def _or_a_ixy_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        v = ixy & 255 if instr & 1 else ixy >> 8
+
+        self.a |= v
+        self.or_flags()
+
+        self.debug('OR A,I%s%s' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H'))
+
+        return 8
+
+    def _cp_a_ixy_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        v = ixy & 255 if instr & 1 else ixy >> 8
+
+        self.flags_add_sub_cp(True, False, v)
+        self.set_flag_53(v)
+
+        self.debug('CP A,I%s%s' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H'))
+
+        return 8
+
+    def _xor_a_ixy_deref(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
+        self.memptr = a
+
+        self.a ^= self.read_mem(a)
+        self.xor_flags()
+
+        self.debug('XOR (I%s + *)' % 'X' if is_ix else 'Y')
+        return 19
+
+    def _or_a_ixy_deref(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
+        self.memptr = a
+
+        self.a |= self.read_mem(a)
+        self.or_flags()
+
+        self.debug('OR (I%s + *)' % 'X' if is_ix else 'Y')
+        return 19
+
+    def _cp_a_ixy_deref(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        a = ((self.ix if is_ix else self.iy) + offset) & 0xffff
+        self.memptr = a
+
+        v = self.read_mem(a)
+        self.flags_add_sub_cp(True, False, v)
+        self.set_flag_53(v)
+
+        self.debug('CP (I%s + *)' % 'X' if is_ix else 'Y')
+
+        return 8
