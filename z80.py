@@ -625,30 +625,31 @@ class z80:
         for i in range(0x18, 0x20):
             self.ixy_bit_jumps[i] = self._rr_ixy
 
-#        for i in range(0x20, 0x28):
-#               self.ixy_bit_jumps[i] = self._sla_ixy
+        for i in range(0x20, 0x28):
+            self.ixy_bit_jumps[i] = self._sla_ixy
 
-#        for i in range(0x28, 0x30):
-#               self.ixy_bit_jumps[i] = self._sra_ixy
+        for i in range(0x28, 0x30):
+            self.ixy_bit_jumps[i] = self._sra_ixy
 
-#        for i in range(0x38, 0x40):
-#               self.ixy_bit_jumps[i] = self._srl_ixy
+        for i in range(0x30, 0x38):
+            self.ixy_bit_jumps[i] = self._sll_ixy
+
+        for i in range(0x38, 0x40):
+            self.ixy_bit_jumps[i] = self._srl_ixy
 
         for i in range(0x40, 0x80):
             self.ixy_bit_jumps[i] = self._bit_ixy
 
-#        for i in range(0x80, 0xc0):
-#                self.ixy_bit_jumps[i] = self._res_ixy
+        for i in range(0x80, 0xc0):
+            self.ixy_bit_jumps[i] = self._res_ixy
 
-#        for i in range(0xc0, 0x100):
-#                self.ixy_bit_jumps[i] = self._set_ixy
+        for i in range(0xc0, 0x100):
+            self.ixy_bit_jumps[i] = self._set_ixy
 
     def ixy_bit(self, instr, which):
         try:
             instr = self.read_pc_inc()
-            self.debug('I%s: %02x' % ('X' if which else 'Y', instr))
-            print('GREP I%s: %02x' % ('X' if which else 'Y', instr))
-            print(instr)
+            #self.debug('I%s: %02x' % ('X' if which else 'Y', instr))
             return self.ixy_bit_jumps[instr](instr, which)
 
         except TypeError as te:
@@ -1031,7 +1032,7 @@ class z80:
         dst = src
         self.set_dst(dst, val)
 
-        self.debug('SLA %s' % name)
+        self.debug('SLL %s' % name)
         return 8
 
     def _sra(self, instr):
@@ -1922,6 +1923,7 @@ class z80:
         name = 'IX' if is_ix else 'IY'
         a = (ixy + offset) & 0xffff
         self.memptr = a
+
         val = self.read_mem(a)
 
         self.set_flag_n(False)
@@ -1938,11 +1940,10 @@ class z80:
 
         val &= 0xff
 
-        dst = instr & 0x7
-        if dst == 6:
-            self.write_mem(a, val)
+        self.write_mem(a, val)
 
-        else:
+        dst = instr & 0x7
+        if dst != 6:
             dst_name = self.set_dst(dst, val)
 
         self.set_flag_pv(self.parity(val))
@@ -2893,6 +2894,7 @@ class z80:
         self.set_flag_n(False)
         self.set_flag_h(True)
 
+        nr = instr & 7
         z_pv = (val & (1 << nr)) == 0
         self.set_flag_z(z_pv)
         self.set_flag_pv(z_pv)
@@ -3147,3 +3149,143 @@ class z80:
         self.debug('CP (I%s + *)' % 'X' if is_ix else 'Y')
 
         return 8
+
+    def _sla_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+        val = self.read_mem(a)
+
+        val <<= 1
+
+        self.set_flag_c(val > 255)
+        self.set_flag_z(val == 0)
+        self.set_flag_pv(self.parity(val & 0xff))
+        self.set_flag_s((val & 128) == 128)
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        val &= 255;
+        self.set_flag_53(val)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('SLA (%s + 0x%02x), %s' % (name, offset, dst_name))
+        return 23
+
+    def _sra_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+        val = self.read_mem(a)
+
+        old_7 = val & 128
+        self.set_flag_c((val & 1) == 1)
+        val >>= 1
+        val |= old_7
+
+        self.set_flag_z(val == 0)
+        self.set_flag_pv(self.parity(val & 0xff))
+        self.set_flag_s((val & 128) == 128)
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        val &= 255;
+        self.set_flag_53(val)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('SRA (%s + 0x%02x), %s' % (name, offset, dst_name))
+        return 23
+
+    def _srl_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+        val = self.read_mem(a)
+
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+        self.set_flag_c((val & 1) == 1)
+        self.set_flag_z(val == 0)
+        self.set_flag_s(False)
+
+        val >>= 1
+
+        self.set_flag_pv(self.parity(val))
+        self.set_flag_53(val)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('SRL (%s + 0x%02x), %s' % (name, offset, dst_name))
+        return 23
+
+    def _sll_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+        val = self.read_mem(a)
+
+        val <<= 1
+        val |= 1 # only difference with sla
+
+        self.set_flag_c(val > 255)
+        self.set_flag_z(val == 0)
+        self.set_flag_pv(self.parity(val & 0xff))
+        self.set_flag_s((val & 128) == 128)
+        self.set_flag_n(False)
+        self.set_flag_h(False)
+
+        val &= 255;
+        self.set_flag_53(val)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('SLL (%s + 0x%02x), %s' % (name, offset, dst_name))
+        return 23
+
+    def _res_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+        val = self.read_mem(a)
+
+        bit = (instr - 0x80) >> 3
+        val &= ~(1 << bit)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('RES (%s + 0x%02x), %s' % (name, offset, dst_name))
+        return 23
+
+    def _set_ixy(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        name = 'IX' if is_ix else 'IY'
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+        val = self.read_mem(a)
+
+        bit = (instr - 0xc0) >> 3
+        val |= ~(1 << bit)
+
+        dst = src
+        self.set_dst(dst, val)
+
+        self.debug('SET (%s + 0x%02x), %s' % (name, offset, dst_name))
+        return 23
