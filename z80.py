@@ -718,20 +718,28 @@ class z80:
 
         if which == 0:
             self.b = value
+            return 'B'
         elif which == 1:
             self.c = value
+            return 'C'
         elif which == 2:
             self.d = value
+            return 'D'
         elif which == 3:
             self.e = value
+            return 'E'
         elif which == 4:
             self.h = value
+            return 'H'
         elif which == 5:
             self.l = value
+            return 'L'
         elif which == 6:
             self.write_mem(self.m16(self.h, self.l), value)
+            return '(HL)'
         elif which == 7:
             self.a = value
+            return 'A'
         else:
             assert False
 
@@ -1925,6 +1933,7 @@ class z80:
         self.memptr = a
 
         val = self.read_mem(a)
+        self.debug('rlc address is %04x: %02x' % (a, val))
 
         self.set_flag_n(False)
         self.set_flag_h(False)
@@ -1950,6 +1959,7 @@ class z80:
 
         self.set_flag_pv(self.parity(val))
         self.set_flag_s((val & 0x80) == 0x80)
+        self.set_flag_z(val == 0)
 
         self.debug('RLC (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -1961,6 +1971,7 @@ class z80:
         a = (ixy + offset) & 0xffff
         self.memptr = a
         val = self.read_mem(a)
+        self.debug('rrc address is %04x: %02x' % (a, val))
 
         self.set_flag_n(False)
         self.set_flag_h(False)
