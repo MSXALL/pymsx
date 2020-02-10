@@ -63,7 +63,7 @@ dk.start()
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)
 
-fh = open('zexall.com', 'rb')
+fh = open('zexdoc.com', 'rb')
 zex = [ int(b) for b in fh.read() ]
 fh.close()
 

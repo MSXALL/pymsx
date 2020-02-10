@@ -42,7 +42,8 @@ disk_sig = None
 #disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
-gen_rom_file = 'athletic.rom'
+#gen_rom_file = 'athletic.rom'
+gen_rom_file = 'yamaha_msx1_diag.rom'
 #gen_rom_file = '../../msx/trunk/docs/testram.rom'
 gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
 gen_sig = gen_obj.get_signature() if gen_obj else None
