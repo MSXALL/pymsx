@@ -2477,6 +2477,9 @@ class z80:
 
         self.memptr = (self.m16(self.b, self.c) + 1) & 0xffff
 
+        self.set_flag_n(True)
+        self.set_flag_z(self.b == 0)
+
         self.debug('OUTI')
         return 16
 
