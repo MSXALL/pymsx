@@ -1,7 +1,6 @@
 # (C) 2020 by Folkert van Heusden <mail@vanheusden.com>
 # released under AGPL v3.0
 
-import curses
 import math
 import sys
 import threading
@@ -139,10 +138,7 @@ class screen_kb(threading.Thread):
         return rc
 
     def find_char_row(self, c):
-        if c < 0 or c > 255:
-            return None
-
-        chars = [ None ] * 256
+        chars = { }
         chars[ord(')')] = ( 0, (1 << 0) ^ 0xff, True )
         chars[ord('0')] = ( 0, (1 << 0) ^ 0xff, False )
         chars[ord('!')] = ( 0, (1 << 1) ^ 0xff, True )
@@ -242,6 +238,9 @@ class screen_kb(threading.Thread):
         chars[10      ] = ( 7, (1 << 7) ^ 0xff, False )
         chars[13      ] = ( 7, (1 << 7) ^ 0xff, False )
         chars[ord(' ')] = ( 8, (1 << 0) ^ 0xff, False )
+
+        if not c in chars:
+            return None
 
         return chars[c]
 

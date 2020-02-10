@@ -133,10 +133,16 @@ class disk:
                     self.need_flush = False
 
                     side = 1 if (self.regs[0x0c] & 10) == 10 else 0
-                    self.debug('Read sector %d:%d:%d' % (side, self.regs[0x09], self.regs[0x0a]))
-                    self.fh.seek(self.file_offset(side, self.regs[0x09], self.regs[0x0a]))
+                    o = self.file_offset(side, self.regs[0x09], self.regs[0x0a])
+                    self.debug('Read sector %d:%d:%d (offset %d)' % (side, self.regs[0x09], self.regs[0x0a], o))
+                    self.fh.seek(o)
                     for i in range(0, 512):
-                        self.buffer[i] = struct.unpack('<B', self.fh.read(1))[0]
+                        b = self.fh.read(1)
+
+                        if len(b) == 0:
+                            b = 0
+                        else:
+                            self.buffer[i] = struct.unpack('<B', b)[0]
 
                     self.tc = 2
 
@@ -184,10 +190,11 @@ class disk:
                     self.bufp += 1
 
                     if self.bufp == 512 and self.need_flush:
-                        self.debug('Write sector %d:%d:%d' % (side, self.regs[0x09], self.regs[0x0a]))
-
                         side = 1 if (self.regs[0x0c] & 0x10) == 0x10 else 0
-                        self.fh.seek(self.file_offset(side, self.regs[0x09], self.regs[0x0a]))
+                        o = self.file_offset(side, self.regs[0x09], self.regs[0x0a])
+                        self.debug('Write sector %d:%d:%d (offset %o)' % (side, self.regs[0x09], self.regs[0x0a], o))
+
+                        self.fh.seek(o)
                         self.fh.write(bytes(self.buffer))
                         self.fh.flush()
 

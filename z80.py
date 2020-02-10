@@ -441,7 +441,6 @@ class z80:
         if self.int:
             self.int = False
             self.debug('Interrupt %f' % time.time())
-            print('Interrupt %f' % time.time())
             self.push(self.pc)
             self.pc = 0x38
 

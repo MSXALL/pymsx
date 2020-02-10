@@ -26,11 +26,10 @@ class scc:
         offset = a & 0x1fff
         p = self.scc_pages[bank] * 0x2000 + offset
 
-        if (offset & 0x1000) == 0x1000: # 0x5000, 0x7000 and so on
-            if v < 255:
-                self.debug('Set bank %d to %d' % (bank, v))
-                assert v < self.n_pages
-                self.scc_pages[bank] = v
+        if offset == 0x1000: # 0x5000, 0x7000 and so on
+            self.debug('Set bank %d to %d (%04x)' % (bank, v, a))
+            assert v < self.n_pages
+            self.scc_pages[bank] = v
 
         else:
             self.debug('SCC write to %04x not understood' % a)

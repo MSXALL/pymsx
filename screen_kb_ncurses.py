@@ -13,9 +13,6 @@ class screen_kb_ncurses(screen_kb):
     def __init__(self, io):
         super(screen_kb_ncurses, self).__init__(io)
 
-    def init_kb(self):
-        pass
-
     def init_screen(self):
         stdscr = curses.initscr()
         curses.start_color()
@@ -75,21 +72,26 @@ class screen_kb_ncurses(screen_kb):
     def stop2(self):
         curses.endwin()
 
+    def poll_game(self):
+        c = self.win.getch()
+
+        if c != -1:
+            if c == 13 or c == 10:
+                print('MARKER', file=sys.stderr)
+
+            self.k_lock.acquire()
+            self.keyboard_queue.append(c)
+            self.k_lock.release()
+
     def run(self):
         while not self.stop_flag:
             with self.cv:
+                self.poll_game()
+
                 while self.redraw == False and self.stop_flag == False:
-                    c = self.win.getch()
+                    self.poll_game()
 
-                    if c != -1:
-                        if c == 13 or c == 10:
-                            print('MARKER', file=sys.stderr)
-
-                        self.k_lock.acquire()
-                        self.keyboard_queue.append(c)
-                        self.k_lock.release()
-
-                    self.cv.wait()
+                    self.cv.wait(0.02)
 
                 self.redraw = False
 
