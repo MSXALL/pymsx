@@ -42,12 +42,10 @@ class z80:
         self.interrupt_cycles = 0
         self.int = False
 
-    def ui(self, which):
-        raise Exception('unknown instruction %x' % which)
-
     def interrupt(self):
-        if self.interrupts:
+        if self.interrupts and (self.screen.registers[1] & 32) == 32:
             self.int = True
+            self.screen.interrupt()
 
     def in_(self, a):
         return self.read_io(a)
@@ -246,6 +244,9 @@ class z80:
     def _nop(self, instr):
         return 4
 
+    def _slow_nop(self, instr, which):
+        return 4 + 2
+
     def init_main(self):
         self.main_jumps = [ None ] * 256
 
@@ -437,13 +438,13 @@ class z80:
 
     def step(self):
         if self.interrupt_cycles >= 3579545 / 50:
-            self.screen.interrupt()
             self.interrupt()
             self.interrupt_cycles = 0
 
         if self.int:
             self.int = False
             self.debug('Interrupt %f' % time.time())
+            print('Interrupt %f' % time.time())
             self.push(self.pc)
             self.pc = 0x38
 
@@ -514,6 +515,7 @@ class z80:
     def init_xy(self):
         self.ixy_jumps = [ None ] * 256
 
+        self.ixy_jumps[0x00] = self._slow_nop
         self.ixy_jumps[0x09] = self._add_pair_ixy
         self.ixy_jumps[0x19] = self._add_pair_ixy
         self.ixy_jumps[0x21] = self._ld_ixy
@@ -1314,8 +1316,14 @@ class z80:
 
     def _add_pair_ixy(self, instr, is_ix):
         org_val = val = self.ix if is_ix else self.iy
+        self.memptr = (org_val + 1) & 0xffff
 
-        (v, name) = self.get_pair(instr >> 4)
+        which = instr >> 4
+        if which == 2:
+            v = org_val
+            name = 'IX' if is_ix else 'IY'
+        else:
+            (v, name) = self.get_pair(which)
 
         val = self.flags_add_sub_cp16(False, False, org_val, v)
 

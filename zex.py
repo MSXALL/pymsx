@@ -56,7 +56,6 @@ def write_io(a, v):
     io[a] = v
 
 def debug(x):
-#    print('%s <%02x/%02x>' % (x, io[0xa8], 0), file=sys.stderr)
     pass
 
 dk = screen_kb_dummy(io)
@@ -64,7 +63,7 @@ dk.start()
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)
 
-fh = open('zexdoc.com', 'rb')
+fh = open('zexall.com', 'rb')
 zex = [ int(b) for b in fh.read() ]
 fh.close()
 
