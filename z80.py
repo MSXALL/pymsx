@@ -588,6 +588,7 @@ class z80:
         self.ixy_jumps[0xbe] = self._cp_a_ixy_deref
         self.ixy_jumps[0xcb] = self.ixy_bit
         self.ixy_jumps[0xe1] = self._pop_ixy
+        self.ixy_jumps[0xe3] = self._ex_sp_ix
         self.ixy_jumps[0xe5] = self._push_ixy
         self.ixy_jumps[0xe9] = self._jp_ixy
         self.ixy_jumps[0xf9] = self._ld_sp_ixy
@@ -1945,6 +1946,8 @@ class z80:
         dst = instr & 0x7
         if dst != 6:
             dst_name = self.set_dst(dst, val)
+        else:
+            dst_name = ''
 
         self.set_flag_pv(self.parity(val))
         self.set_flag_s((val & 0x80) == 0x80)
@@ -1976,6 +1979,7 @@ class z80:
         dst = instr & 0x7
         if dst == 6:
             self.write_mem(a, val)
+            dst_name = ''
 
         else:
             dst_name = self.set_dst(dst, val)
@@ -2876,8 +2880,8 @@ class z80:
         self.set_flag_z(val == 0)
         self.set_flag_s(val >= 128)
 
-        dst = src
-        self.set_dst(dst, val)
+        dst = instr & 7
+        dst_name = self.set_dst(dst, val)
 
         self.debug('RR (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -3170,8 +3174,8 @@ class z80:
         val &= 255;
         self.set_flag_53(val)
 
-        dst = src
-        self.set_dst(dst, val)
+        dst = instr & 7
+        dst_name = self.set_dst(dst, val)
 
         self.debug('SLA (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -3198,8 +3202,8 @@ class z80:
         val &= 255;
         self.set_flag_53(val)
 
-        dst = src
-        self.set_dst(dst, val)
+        dst = instr & 7
+        dst_name = self.set_dst(dst, val)
 
         self.debug('SRA (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -3223,8 +3227,8 @@ class z80:
         self.set_flag_pv(self.parity(val))
         self.set_flag_53(val)
 
-        dst = src
-        self.set_dst(dst, val)
+        dst = instr & 7
+        dst_name = self.set_dst(dst, val)
 
         self.debug('SRL (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -3250,8 +3254,8 @@ class z80:
         val &= 255;
         self.set_flag_53(val)
 
-        dst = src
-        self.set_dst(dst, val)
+        dst = instr & 7
+        dst_name = self.set_dst(dst, val)
 
         self.debug('SLL (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -3267,8 +3271,8 @@ class z80:
         bit = (instr - 0x80) >> 3
         val &= ~(1 << bit)
 
-        dst = src
-        self.set_dst(dst, val)
+        dst = instr & 7
+        dst_name = self.set_dst(dst, val)
 
         self.debug('RES (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -3283,9 +3287,25 @@ class z80:
 
         bit = (instr - 0xc0) >> 3
         val |= ~(1 << bit)
+        val &= 0xff
 
-        dst = src
-        self.set_dst(dst, val)
+        dst = instr & 7
+        dst_name = self.set_dst(dst, val)
 
         self.debug('SET (%s + 0x%02x), %s' % (name, offset, dst_name))
+        return 23
+
+    def _ex_sp_ix(self, instr, is_ix):
+        hl = self.m16(self.h, self.l)
+        org_sp_deref = self.read_mem_16(self.sp)
+        self.write_mem_16(self.sp, hl)
+
+        if is_ix:
+            self.ix = org_sp_deref
+        else:
+            self.iy = org_sp_deref
+
+        self.memptr = org_sp_deref
+
+        self.debug('EX (SP),%s' % 'IX' if is_ix else 'IY')
         return 23
