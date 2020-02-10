@@ -531,12 +531,27 @@ class z80:
         self.ixy_jumps[0x35] = self._dec_ix_index
         self.ixy_jumps[0x36] = self._ld_ix_index
         self.ixy_jumps[0x39] = self._add_pair_ixy
+        self.ixy_jumps[0x44] = self._lb_b_ixh
+        self.ixy_jumps[0x45] = self._lb_b_ixl
         self.ixy_jumps[0x46] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x4c] = self._lb_c_ixh
+        self.ixy_jumps[0x4d] = self._lb_c_ixl
         self.ixy_jumps[0x4e] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x54] = self._lb_d_ixh
+        self.ixy_jumps[0x55] = self._lb_d_ixl
         self.ixy_jumps[0x56] = self._ld_X_ixy_deref
+        self.ixy_jumps[0x5c] = self._lb_e_ixh
+        self.ixy_jumps[0x5d] = self._lb_e_ixl
         self.ixy_jumps[0x5e] = self._ld_X_ixy_deref
-        self.ixy_jumps[0x66] = self._ld_X_ixy_deref
+
+        for i in range(0x60, 0x68):
+            self.ixy_jumps[i] = self._ld_ixh_src
+        self.ixy_jumps[0x66] = self._ld_X_ixy_deref  # override
+
+        for i in range(0x68, 0x70):
+            self.ixy_jumps[i] = self._ld_ixl_src
         self.ixy_jumps[0x6e] = self._ld_X_ixy_deref
+
         self.ixy_jumps[0x70] = self._ld_ixy_X
         self.ixy_jumps[0x71] = self._ld_ixy_X
         self.ixy_jumps[0x72] = self._ld_ixy_X
@@ -544,10 +559,17 @@ class z80:
         self.ixy_jumps[0x74] = self._ld_ixy_X
         self.ixy_jumps[0x75] = self._ld_ixy_X
         self.ixy_jumps[0x77] = self._ld_ixy_X
+        self.ixy_jumps[0x7c] = self._ld_a_ix_hl
+        self.ixy_jumps[0x7d] = self._ld_a_ix_hl
         self.ixy_jumps[0x7e] = self._ld_X_ixy_deref
         self.ixy_jumps[0x84] = self._add_a_ixy_h
         self.ixy_jumps[0x85] = self._add_a_ixy_l
         self.ixy_jumps[0x86] = self._add_a_deref_ixy
+        self.ixy_jumps[0x88] = self._sub_a_ixy_hl
+        self.ixy_jumps[0x89] = self._sub_a_ixy_hl
+        self.ixy_jumps[0x8c] = self._adc_a_ixy_hl
+        self.ixy_jumps[0x8d] = self._adc_a_ixy_hl
+        self.ixy_jumps[0x8e] = self._adc_a_ixy_deref
         self.ixy_jumps[0xa6] = self._and_a_ixy_deref
         self.ixy_jumps[0xbe] = self._cp_im_ixy
         self.ixy_jumps[0xcb] = self.ixy_bit
@@ -1574,16 +1596,16 @@ class z80:
         self.debug('LD I%s,(0x%04x)' % ('X' if is_ix else 'Y', a))
         return 20
 
-    def _add_a_ixy_h(self, instr, is_x):
+    def _add_a_ixy_h(self, instr, is_ix):
         org = self.a
-        v = (self.ix if is_x else self.iy) >> 8
+        v = (self.ix if is_ix else self.iy) >> 8
         self.a = self.flags_add_sub_cp(False, False, v)
         self.debug('ADD A,I%sH' % 'X' if is_ix else 'Y')
         return 8
 
-    def _add_a_ixy_l(self, instr, is_x):
+    def _add_a_ixy_l(self, instr, is_ix):
         org = self.a
-        v = (self.ix if is_x else self.iy) & 255
+        v = (self.ix if is_ix else self.iy) & 255
         self.a = self.flags_add_sub_cp(False, False, v)
         self.debug('ADD A,I%sL' % 'X' if is_ix else 'Y')
         return 8
@@ -2879,3 +2901,145 @@ class z80:
         self.debug('BIT %d, %s' % (nr, src_name))
 
         return 20
+
+    def _lb_b_ixh(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.b = ixy >> 8
+        self.debug('LD B, I%sH' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _lb_b_ixl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.b = ixy & 0xff
+        self.debug('LD B, I%sL' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _lb_c_ixh(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.c = ixy >> 8
+        self.debug('LD C, I%sH' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _lb_c_ixl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.c = ixy & 0xff
+        self.debug('LD C, I%sL' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _lb_d_ixh(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.d = ixy >> 8
+        self.debug('LD D, I%sH' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _lb_d_ixl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.d = ixy & 0xff
+        self.debug('LD D, I%sL' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _lb_e_ixh(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.e = ixy >> 8
+        self.debug('LD E, I%sH' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _lb_e_ixl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+        self.e = ixy & 0xff
+        self.debug('LD E, I%sL' % 'X' if is_ix else 'Y')
+        return 8
+
+    def _ld_ixh_src(self, instr, is_ix):
+        src = instr & 7
+        (val, name) = self.get_src(src)
+
+        if src == 4:
+            val = (self.ix if is_ix else self.iy) >> 8
+            name = 'IXH' if is_ix else 'IYH'
+        elif src == 5:
+            val = (self.ix if is_ix else self.iy) & 0xff
+            name = 'IXL' if is_ix else 'IYL'
+        else:
+            (val, name) = self.get_src(src)
+
+        if is_ix:
+            self.ix &= 0x00ff
+            self.ix |= val << 8
+            self.debug('LD IXH, %s' % name)
+
+        else:
+            self.iy &= 0x00ff
+            self.iy |= val << 8
+            self.debug('LD IYH, %s' % name)
+
+        return 8
+
+    def _ld_ixl_src(self, instr, is_ix):
+        src = instr & 7
+
+        if src == 4:
+            val = (self.ix if is_ix else self.iy) >> 8
+            name = 'IXH' if is_ix else 'IYH'
+        elif src == 5:
+            val = (self.ix if is_ix else self.iy) & 0xff
+            name = 'IXL' if is_ix else 'IYL'
+        else:
+            (val, name) = self.get_src(src)
+
+        if is_ix:
+            self.ix &= 0xff00
+            self.ix |= val
+            self.debug('LD IHL, %s' % name)
+
+        else:
+            self.iy &= 0xff00
+            self.iy |= val
+            self.debug('LD IHL, %s' % name)
+
+        return 8
+
+    def _ld_a_ix_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+
+        if instr & 1:
+            self.a = ixy & 255
+            self.debug('LD A, I%sH' % 'X' if is_ix else 'Y')
+        else:
+            self.a = ixy >> 8
+            self.debug('LD A, I%sL' % 'X' if is_ix else 'Y')
+
+        return 8
+
+    def _adc_a_ixy_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+
+        v = ixy & 255 if instr & 1 else ixy >> 8
+
+        self.a = self.flags_add_sub_cp(False, True, v)
+        self.debug('ACD A,I%s%s' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H'))
+
+        return 8
+
+    def _sub_a_ixy_hl(self, instr, is_ix):
+        ixy = self.ix if is_ix else self.iy
+
+        v = ixy & 255 if instr & 1 else ixy >> 8
+
+        self.a = self.flags_add_sub_cp(True, False, v)
+        self.debug('SUB A,I%s%s' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H'))
+
+        return 8
+
+    def _adc_a_ixy_deref(self, instr, is_ix):
+        offset = self.compl8(self.read_pc_inc())
+        ixy = self.ix if is_ix else self.iy
+        a = (ixy + offset) & 0xffff
+        self.memptr = a
+
+        v = self.read_mem(a)
+ 
+        self.a = self.flags_add_sub_cp(False, True, v)
+        self.debug('ACD A,(I%s%s + 0%02xh)' % ('X' if is_ix else 'Y', 'L' if instr & 1 else 'H', offset & 0xff))
+
+        return 19
