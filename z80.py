@@ -1411,6 +1411,7 @@ class z80:
         self.f = org_f
         self.set_flag_c((new_f & 1) == 1)
         self.set_flag_n((new_f & 2) == 2)
+        self.set_flag_pv((new_f & 4) == 4)
         self.set_flag_h((new_f & 16) == 16)
 
         self.memptr = (org_val + 1) & 0xffff
