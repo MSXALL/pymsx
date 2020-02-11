@@ -137,13 +137,13 @@ class z80:
             return self._jp(True, None)
 
         elif instr == 0x20:
-            return self._jr(not self.get_flag_z(), "nz")
+            return self._jr(not self.get_flag_z(), 'nz')
 
         elif instr == 0x28:
             return self._jr(self.get_flag_z(), 'z')
 
         elif instr == 0x30:
-            return self._jr(not self.get_flag_c(), "nc")
+            return self._jr(not self.get_flag_c(), 'nc')
 
         elif instr == 0x38:
             return self._jr(self.get_flag_c(), 'c')
@@ -168,7 +168,7 @@ class z80:
             return self._ret(not self.get_flag_pv(), 'PO')
 
         elif instr == 0xe8:
-            return self._ret(not self.get_flag_s(), 'P')
+            return self._ret(self.get_flag_pv(), 'PE')
 
         elif instr == 0xf0:
             return self._ret(not self.get_flag_s(), 'P')
@@ -3347,9 +3347,9 @@ class z80:
         return 23
 
     def _ex_sp_ix(self, instr, is_ix):
-        hl = self.m16(self.h, self.l)
         org_sp_deref = self.read_mem_16(self.sp)
-        self.write_mem_16(self.sp, hl)
+        ixy = self.ix if is_ix else self.iy
+        self.write_mem_16(self.sp, ixy)
 
         if is_ix:
             self.ix = org_sp_deref
