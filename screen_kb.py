@@ -160,6 +160,10 @@ class screen_kb(threading.Thread):
                 self.kb_char_scanned = False
 
         if (self.io[0xaa] & 15) == self.kb_row_nr:
+            fh = open('debug.log', 'a+')
+            fh.write('SCANNED\n')
+            fh.close()
+
             self.kb_char_scanned = True
             rc = self.kb_row
 

@@ -38,14 +38,15 @@ def debug(x):
 
 scc_sig = None
 #scc_rom_file = 'NEMESIS2.ROM'
-#scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
-#scc_sig = scc_obj.get_signature() if scc_obj else None
+scc_rom_file = 'nondos.rom'
+scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
+scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
-disk_rom_file = 'FSFD1.ROM'
-disk_image_file = 'md1.dsk'
-disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
-disk_sig = disk_obj.get_signature() if disk_obj else None
+#disk_rom_file = 'FSFD1.ROM'
+#disk_image_file = 'nondos.dsk'
+#disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
+#disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
 #gen_rom_file = 'athletic.rom'

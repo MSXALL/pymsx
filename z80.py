@@ -447,6 +447,9 @@ class z80:
 
         instr = self.read_pc_inc()
 
+        if not instr in (0xcb, 0xdd, 0xfd):
+            self.debug('%04x %02x' % (self.pc - 1, instr))
+
         try:
             took = self.main_jumps[instr](instr)
             assert took != None
@@ -466,6 +469,7 @@ class z80:
     def bits(self, dummy):
         try:
             instr = self.read_pc_inc()
+            self.debug('%04x cb%02x' % (self.pc - 2, instr))
             return self.bits_jumps[instr](instr)
 
         except TypeError as te:
@@ -595,6 +599,7 @@ class z80:
     def _ix(self, dummy):
         try:
             instr = self.read_pc_inc()
+            self.debug('%04x dd%02x' % (self.pc - 2, instr))
             return self.ixy_jumps[instr](instr, True)
 
         except TypeError as te:
@@ -604,6 +609,7 @@ class z80:
     def _iy(self, dummy):
         try:
             instr = self.read_pc_inc()
+            self.debug('%04x fd%02x' % (self.pc - 2, instr))
             return self.ixy_jumps[instr](instr, False)
 
         except TypeError as te:
@@ -1770,33 +1776,29 @@ class z80:
         return 14
 
     def _rrd_rld(self, instr):
+        org_a = self.a
         a = self.m16(self.h, self.l)
         v_hl = self.read_mem(a)
 
-        ln_hl = v_hl & 15
-        hn_hl = v_hl >> 4
-
-        ln_a = self.a & 15
-        hn_a = self.a >> 4
-
         if instr == 0x67:
             # rrd
-            new_hl = ln_hl | (ln_a << 4)
-            new_a = hn_a | (ln_hl << 4)
-        else:
+            self.a = (self.a & 0xf0) | (v_hl & 0x0f);
+            new_hl = (v_hl >> 4) | ((org_a & 0x0f) << 4);
+        elif instr == 0x6f:
             # rld
-            new_hl = (ln_hl << 4) | ln_a
-            new_a = (hn_a << 4) | ln_hl
+            self.a = (self.a & 0xf0) | ((v_hl & 0xf0) >> 4);
+            new_hl = ((v_hl << 4) & 0xf0) | (org_a & 0x0f);
+        else:
+            assert False
         
         self.write_mem(a, new_hl)
-        self.a = new_a
         self.set_flag_53(self.a)
         
         self.set_flag_h(False)
         self.set_flag_n(False)
         self.set_flag_pv(self.parity(new_hl))
         self.set_flag_z(new_hl == 0)
-        self.set_flag_z((new_hl & 0x80) == 0x80)
+        self.set_flag_s((new_hl & 0x80) == 0x80)
 
         self.memptr = (a + 1) & 0xffff
 
