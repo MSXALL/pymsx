@@ -1681,51 +1681,63 @@ class z80:
         self.ed_jumps[0x41] = self._out_c_low
         self.ed_jumps[0x42] = self._sbc_pair
         self.ed_jumps[0x43] = self._ld_mem_pair
-        self.ed_jumps[0x45] = self._neg
+        self.ed_jumps[0x44] = self._neg
+        self.ed_jumps[0x45] = self._retn
         self.ed_jumps[0x46] = self._im
         self.ed_jumps[0x47] = self._ld_i_a
         self.ed_jumps[0x48] = self._in_ed_high
         self.ed_jumps[0x49] = self._out_c_high
         self.ed_jumps[0x4a] = self._adc_pair
         self.ed_jumps[0x4b] = self._ld_pair_mem
+        self.ed_jumps[0x4c] = self._neg
         self.ed_jumps[0x4d] = self._reti
+        self.ed_jumps[0x4e] = self._im
         self.ed_jumps[0x4f] = self._ld_r_a
         self.ed_jumps[0x50] = self._in_ed_low
         self.ed_jumps[0x51] = self._out_c_low
         self.ed_jumps[0x52] = self._sbc_pair
         self.ed_jumps[0x53] = self._ld_mem_pair
-        self.ed_jumps[0x55] = self._neg
+        self.ed_jumps[0x54] = self._neg
+        self.ed_jumps[0x55] = self._retn
         self.ed_jumps[0x56] = self._im
         self.ed_jumps[0x57] = self._ld_a_i
         self.ed_jumps[0x58] = self._in_ed_high
         self.ed_jumps[0x59] = self._out_c_high
         self.ed_jumps[0x5a] = self._adc_pair
         self.ed_jumps[0x5b] = self._ld_pair_mem
+        self.ed_jumps[0x5c] = self._neg
         self.ed_jumps[0x5d] = self._retn
+        self.ed_jumps[0x5e] = self._im
         self.ed_jumps[0x5f] = self._ld_a_r
         self.ed_jumps[0x50] = self._in_ed_low
         self.ed_jumps[0x60] = self._in_ed_low
         self.ed_jumps[0x61] = self._out_c_low
         self.ed_jumps[0x62] = self._sbc_pair
         self.ed_jumps[0x63] = self._ld_mem_pair
-        self.ed_jumps[0x65] = self._neg
+        self.ed_jumps[0x64] = self._neg
+        self.ed_jumps[0x65] = self._retn
         self.ed_jumps[0x66] = self._im
         self.ed_jumps[0x68] = self._in_ed_high
         self.ed_jumps[0x69] = self._out_c_high
         self.ed_jumps[0x6a] = self._adc_pair
         self.ed_jumps[0x6b] = self._ld_pair_mem
+        self.ed_jumps[0x6c] = self._neg
         self.ed_jumps[0x6d] = self._retn
+        self.ed_jumps[0x6e] = self._im
         self.ed_jumps[0x6f] = self._rld
         self.ed_jumps[0x71] = self._out_c_low
         self.ed_jumps[0x72] = self._sbc_pair
         self.ed_jumps[0x73] = self._ld_mem_pair
-        self.ed_jumps[0x75] = self._neg
+        self.ed_jumps[0x74] = self._neg
+        self.ed_jumps[0x75] = self._retn
         self.ed_jumps[0x76] = self._im
         self.ed_jumps[0x78] = self._in_ed_high
         self.ed_jumps[0x79] = self._out_c_high
         self.ed_jumps[0x7a] = self._adc_pair
         self.ed_jumps[0x7b] = self._ld_pair_mem
+        self.ed_jumps[0x7c] = self._neg
         self.ed_jumps[0x7d] = self._retn
+        self.ed_jumps[0x7e] = self._im
         self.ed_jumps[0xa0] = self._ldi
         self.ed_jumps[0xa3] = self._outi
         self.ed_jumps[0xb0] = self._ldir
@@ -2181,7 +2193,14 @@ class z80:
         return 23
 
     def _im(self, instr):
-        self.im = instr & 1
+        if (instr & 0x0f) == 0x0e:
+            major = instr & 0xf0
+            if major == 0x40 or major == 0x60:
+                self.im = instr & 1
+            else:
+                self.im = 2
+        else:
+            self.im = instr & 1
 
         self.debug('IM %d' % self.im)
         return 8
@@ -2387,13 +2406,10 @@ class z80:
         return 15
 
     def _neg(self, instr):
-        org_a = self.compl8(self.a)
+        org_a = self.a
 
         self.a = 0
-        flags_add_sub_cp(True, False, org_a)
-
-        self.a = (-org_a) & 0xff
-        self.set_flag_53(self.a)
+        self.a = self.flags_add_sub_cp(True, False, org_a)
 
         self.debug('NEG')
         return 8
