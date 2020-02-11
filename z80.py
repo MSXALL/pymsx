@@ -2408,6 +2408,9 @@ class z80:
         result = self.flags_add_sub_cp16(True, True, before, v)
         (self.h, self.l) = self.u16(result)
 
+        self.set_flag_z(result == 0)
+        self.set_flag_s((result & 0x8000) == 0x8000)
+
         self.set_flag_53(result >> 8)
  
         self.set_pair(2, result)
