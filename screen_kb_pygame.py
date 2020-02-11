@@ -29,24 +29,115 @@ class screen_kb_pygame(screen_kb):
     def stop2(self):
         pass
 
+    def find_char_row(self, c):
+        chars = { }
+
+        chars[pygame.K_RIGHTPAREN] = ( 0, (1 << 0) ^ 0xff, True )
+        chars[pygame.K_0] = ( 0, (1 << 0) ^ 0xff, False )
+        chars[pygame.K_EXCLAIM] = ( 0, (1 << 1) ^ 0xff, True )
+        chars[pygame.K_1] = ( 0, (1 << 1) ^ 0xff, False )
+        chars[pygame.K_AT] = ( 0, (1 << 2) ^ 0xff, True )
+        chars[pygame.K_2] = ( 0, (1 << 2) ^ 0xff, False )
+        chars[pygame.K_HASH] = ( 0, (1 << 3) ^ 0xff, True )
+        chars[pygame.K_3] = ( 0, (1 << 3) ^ 0xff, False )
+        chars[pygame.K_DOLLAR] = ( 0, (1 << 4) ^ 0xff, True )
+        chars[pygame.K_4] = ( 0, (1 << 4) ^ 0xff, False )
+#        chars[pygame.K_PERCENT] = ( 0, (1 << 5) ^ 0xff, True )
+        chars[pygame.K_5] = ( 0, (1 << 5) ^ 0xff, False )
+        chars[pygame.K_CARET] = ( 0, (1 << 6) ^ 0xff, True )
+        chars[pygame.K_6] = ( 0, (1 << 6) ^ 0xff, False )
+        chars[pygame.K_AMPERSAND] = ( 0, (1 << 7) ^ 0xff, True )
+        chars[pygame.K_7] = ( 0, (1 << 7) ^ 0xff, False )
+        chars[pygame.K_KP_MULTIPLY] = ( 1, (1 << 0) ^ 0xff, True )
+        chars[pygame.K_8] = ( 1, (1 << 0) ^ 0xff, False )
+        chars[pygame.K_LEFTPAREN] = ( 1, (1 << 1) ^ 0xff, True )
+        chars[pygame.K_9] = ( 1, (1 << 1) ^ 0xff, False )
+        chars[ord('_')] = ( 1, (1 << 2) ^ 0xff, True )
+        chars[ord('-')] = ( 1, (1 << 2) ^ 0xff, False )
+        chars[ord('+')] = ( 1, (1 << 3) ^ 0xff, True )
+        chars[ord('=')] = ( 1, (1 << 3) ^ 0xff, False )
+        chars[ord('|')] = ( 1, (1 << 4) ^ 0xff, True )
+        chars[ord('\\')] = ( 1, (1 << 4) ^ 0xff, False )
+        chars[ord('{')] = ( 1, (1 << 5) ^ 0xff, True )
+        chars[ord('[')] = ( 1, (1 << 5) ^ 0xff, False )
+        chars[ord('}')] = ( 1, (1 << 6) ^ 0xff, True )
+        chars[ord(']')] = ( 1, (1 << 6) ^ 0xff, False )
+        chars[ord(':')] = ( 1, (1 << 7) ^ 0xff, True )
+        chars[ord(';')] = ( 1, (1 << 7) ^ 0xff, False )
+        chars[pygame.K_QUOTEDBL] = ( 2, (1 << 0) ^ 0xff, True )
+        chars[pygame.K_QUOTE] = ( 2, (1 << 0) ^ 0xff, False )
+        chars[ord('~')] = ( 2, (1 << 1) ^ 0xff, True )
+        chars[ord('`')] = ( 2, (1 << 1) ^ 0xff, False )
+        chars[ord('<')] = ( 2, (1 << 2) ^ 0xff, True )
+        chars[ord(',')] = ( 2, (1 << 2) ^ 0xff, False )
+        chars[ord('>')] = ( 2, (1 << 3) ^ 0xff, True )
+        chars[ord('.')] = ( 2, (1 << 3) ^ 0xff, False )
+        chars[ord('?')] = ( 2, (1 << 4) ^ 0xff, True )
+        chars[ord('/')] = ( 2, (1 << 4) ^ 0xff, False )
+        chars[pygame.K_a] = ( 2, (1 << 6) ^ 0xff, None )
+        chars[pygame.K_b] = ( 2, (1 << 7) ^ 0xff, None )
+        chars[pygame.K_c] = ( 3, (1 << 0) ^ 0xff, None )
+        chars[pygame.K_d] = ( 3, (1 << 1) ^ 0xff, None )
+        chars[pygame.K_e] = ( 3, (1 << 2) ^ 0xff, None )
+        chars[pygame.K_f] = ( 3, (1 << 3) ^ 0xff, None )
+        chars[pygame.K_g] = ( 3, (1 << 4) ^ 0xff, None )
+        chars[pygame.K_h] = ( 3, (1 << 5) ^ 0xff, None )
+        chars[pygame.K_i] = ( 3, (1 << 6) ^ 0xff, None )
+        chars[pygame.K_j] = ( 3, (1 << 7) ^ 0xff, None )
+        chars[pygame.K_k] = ( 4, (1 << 0) ^ 0xff, None )
+        chars[pygame.K_l] = ( 4, (1 << 1) ^ 0xff, None )
+        chars[pygame.K_m] = ( 4, (1 << 2) ^ 0xff, None )
+        chars[pygame.K_n] = ( 4, (1 << 3) ^ 0xff, None )
+        chars[pygame.K_o] = ( 4, (1 << 4) ^ 0xff, None )
+        chars[pygame.K_p] = ( 4, (1 << 5) ^ 0xff, None )
+        chars[pygame.K_q] = ( 4, (1 << 6) ^ 0xff, None )
+        chars[pygame.K_r] = ( 4, (1 << 7) ^ 0xff, None )
+        chars[pygame.K_s] = ( 5, (1 << 0) ^ 0xff, None )
+        chars[pygame.K_t] = ( 5, (1 << 1) ^ 0xff, None )
+        chars[pygame.K_u] = ( 5, (1 << 2) ^ 0xff, None )
+        chars[pygame.K_v] = ( 5, (1 << 3) ^ 0xff, None )
+        chars[pygame.K_w] = ( 5, (1 << 4) ^ 0xff, None )
+        chars[pygame.K_x] = ( 5, (1 << 5) ^ 0xff, None )
+        chars[pygame.K_y] = ( 5, (1 << 6) ^ 0xff, None )
+        chars[pygame.K_z] = ( 5, (1 << 7) ^ 0xff, None )
+        chars[pygame.K_BACKSPACE] = ( 7, (1 << 5) ^ 0xff, False )
+        chars[pygame.K_RETURN] = ( 7, (1 << 7) ^ 0xff, False )
+        chars[pygame.K_SPACE] = ( 8, (1 << 0) ^ 0xff, False )
+        chars[pygame.K_DELETE] = ( 8, (1 << 3) ^ 0xff, False )
+        chars[pygame.K_LEFT] = ( 8, (1 << 4) ^ 0xff, False )
+        chars[pygame.K_UP] = ( 8, (1 << 5) ^ 0xff, False )
+        chars[pygame.K_DOWN] = ( 8, (1 << 6) ^ 0xff, False )
+        chars[pygame.K_RIGHT] = ( 8, (1 << 7) ^ 0xff, False )
+
+        if not c.key in chars:
+            print('key %c not in chars (space = %d)' % (c.key, pygame.K_SPACE), file=sys.stderr)
+            return None
+
+        if c.key >= pygame.K_a and c.key <= pygame.K_z:
+            shift = (c.mod & (pygame.KMOD_LSHIFT | pygame.KMOD_RSHIFT | pygame.KMOD_CAPS)) != 0
+
+            return (chars[c.key][0], chars[c.key][1], shift)
+
+        if c.key == pygame.K_SPACE:
+            print('hier', file=sys.stderr)
+        print('daar %s %s %s' % chars[c.key], file=sys.stderr)
+
+        return chars[c.key]
+
     def poll_kb(self):
         events = pygame.event.get()
 
         for event in events:
-            c = -1
-
             if event.type == pygame.QUIT:
                 self.stop_flag = True
                 break
 
-            elif event.type == pygame.KEYUP:
-                c = event.key
-
-                if c == 13 or c == 10:
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_RETURN:
                     print('MARKER', file=sys.stderr)
 
                 self.k_lock.acquire()
-                self.keyboard_queue.append(c)
+                self.keyboard_queue.append(event)
                 self.k_lock.release()
 
     def run(self):
@@ -57,7 +148,7 @@ class screen_kb_pygame(screen_kb):
                 while self.redraw == False and self.stop_flag == False:
                     self.poll_kb()
 
-                    self.cv.wait(0.02)
+                    self.cv.wait(0.01)
 
                 self.redraw = False
 

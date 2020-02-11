@@ -16,6 +16,8 @@ from screen_kb_pygame import screen_kb_pygame
 
 abort_time = None # 60
 
+debug_log = 'debug.log' # None to disable
+
 io = [ 0 ] * 256
 
 subpage = 0x00
@@ -28,18 +30,22 @@ fh.close()
 def debug(x):
     global subpage
     dk.debug('%s <%02x/%02x>' % (x, io[0xa8], subpage))
-    print('%s <%02x/%02x>' % (x, io[0xa8], subpage), file=sys.stderr)
+
+    if debug_log:
+        fh = open(debug_log, 'a+')
+        fh.write('%s <%02x/%02x>\n' % (x, io[0xa8], subpage))
+        fh.close()
 
 scc_sig = None
-scc_rom_file = 'nondos.rom'
-scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
-scc_sig = scc_obj.get_signature() if scc_obj else None
+#scc_rom_file = 'NEMESIS2.ROM'
+#scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
+#scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
-#disk_rom_file = 'FSFD1.ROM'
-#disk_image_file = 'md1.dsk'
-#disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
-#disk_sig = disk_obj.get_signature() if disk_obj else None
+disk_rom_file = 'FSFD1.ROM'
+disk_image_file = 'md1.dsk'
+disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
+disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
 #gen_rom_file = 'athletic.rom'

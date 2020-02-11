@@ -466,7 +466,6 @@ class z80:
     def bits(self, dummy):
         try:
             instr = self.read_pc_inc()
-            self.debug('bits: %02x' % instr)
             return self.bits_jumps[instr](instr)
 
         except TypeError as te:
@@ -1585,7 +1584,7 @@ class z80:
 
     def _push_ixy(self, instr, is_ix):
         self.push(self.ix if is_ix else self.iy)
-        self.debug('PUSH I%s' % 'X' if is_ix else 'Y')
+        self.debug('PUSH I%s' % ('X' if is_ix else 'Y'))
         return 15
 
     def _pop_ixy(self, instr, is_ix):
@@ -1602,7 +1601,7 @@ class z80:
     def _jp_ixy(self, instr, is_ix):
         self.pc = self.ix if is_ix else self.iy
 
-        self.debug('JP (I%s)' % 'X' if is_ix else 'Y')
+        self.debug('JP (I%s)' % ('X' if is_ix else 'Y'))
 
         return 8
 
@@ -1631,14 +1630,14 @@ class z80:
         org = self.a
         v = (self.ix if is_ix else self.iy) >> 8
         self.a = self.flags_add_sub_cp(False, False, v)
-        self.debug('ADD A,I%sH' % 'X' if is_ix else 'Y')
+        self.debug('ADD A,I%sH' % ('X' if is_ix else 'Y'))
         return 8
 
     def _add_a_ixy_l(self, instr, is_ix):
         org = self.a
         v = (self.ix if is_ix else self.iy) & 255
         self.a = self.flags_add_sub_cp(False, False, v)
-        self.debug('ADD A,I%sL' % 'X' if is_ix else 'Y')
+        self.debug('ADD A,I%sL' % ('X' if is_ix else 'Y'))
         return 8
 
     def _dec_ixy(self, instr, is_x):
@@ -2745,7 +2744,7 @@ class z80:
 
         self.and_flags()
 
-        self.debug('AND (I%s + *)' % 'X' if is_ix else 'Y')
+        self.debug('AND (I%s + *)' % ('X' if is_ix else 'Y'))
         return 19
 
     def _ld_X_ixy_deref(self, which, is_ix):
@@ -2862,7 +2861,7 @@ class z80:
             self.ix = (self.ix & 0x00ff) | (work << 8)
         else:
             self.iy = (self.iy & 0x00ff) | (work << 8)
-        self.debug('INC %s' % 'IXH' if is_ix else 'IYH')
+        self.debug('INC %s' % ('IXH' if is_ix else 'IYH'))
         return 8
 
     def _dec_ixh(self, instr, is_ix):
@@ -2873,7 +2872,7 @@ class z80:
             self.ix = (self.ix & 0x00ff) | (work << 8)
         else:
             self.iy = (self.iy & 0x00ff) | (work << 8)
-        self.debug('INC %s' % 'IXH' if is_ix else 'IYH')
+        self.debug('INC %s' % ('IXH' if is_ix else 'IYH'))
         return 8
 
     def _ld_ixh(self, instr, is_ix):
@@ -2893,7 +2892,7 @@ class z80:
             self.ix = (self.ix & 0xff00) | work
         else:
             self.iy = (self.iy & 0xff00) | work
-        self.debug('INC %s' % 'IXL' if is_ix else 'IYL')
+        self.debug('INC %s' % ('IXL' if is_ix else 'IYL'))
         return 8
 
     def _dec_ixl(self, instr, is_ix):
@@ -2904,7 +2903,7 @@ class z80:
             self.ix = (self.ix & 0xff00) | work
         else:
             self.iy = (self.iy & 0xff00) | work
-        self.debug('INC %s' % 'IXL' if is_ix else 'IYL')
+        self.debug('INC %s' % ('IXL' if is_ix else 'IYL'))
         return 8
 
     def _ld_ixl(self, instr, is_ix):
@@ -3013,49 +3012,49 @@ class z80:
     def _lb_b_ixh(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.b = ixy >> 8
-        self.debug('LD B, I%sH' % 'X' if is_ix else 'Y')
+        self.debug('LD B, I%sH' % ('X' if is_ix else 'Y'))
         return 8
 
     def _lb_b_ixl(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.b = ixy & 0xff
-        self.debug('LD B, I%sL' % 'X' if is_ix else 'Y')
+        self.debug('LD B, I%sL' % ('X' if is_ix else 'Y'))
         return 8
 
     def _lb_c_ixh(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.c = ixy >> 8
-        self.debug('LD C, I%sH' % 'X' if is_ix else 'Y')
+        self.debug('LD C, I%sH' % ('X' if is_ix else 'Y'))
         return 8
 
     def _lb_c_ixl(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.c = ixy & 0xff
-        self.debug('LD C, I%sL' % 'X' if is_ix else 'Y')
+        self.debug('LD C, I%sL' % ('X' if is_ix else 'Y'))
         return 8
 
     def _lb_d_ixh(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.d = ixy >> 8
-        self.debug('LD D, I%sH' % 'X' if is_ix else 'Y')
+        self.debug('LD D, I%sH' % ('X' if is_ix else 'Y'))
         return 8
 
     def _lb_d_ixl(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.d = ixy & 0xff
-        self.debug('LD D, I%sL' % 'X' if is_ix else 'Y')
+        self.debug('LD D, I%sL' % ('X' if is_ix else 'Y'))
         return 8
 
     def _lb_e_ixh(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.e = ixy >> 8
-        self.debug('LD E, I%sH' % 'X' if is_ix else 'Y')
+        self.debug('LD E, I%sH' % ('X' if is_ix else 'Y'))
         return 8
 
     def _lb_e_ixl(self, instr, is_ix):
         ixy = self.ix if is_ix else self.iy
         self.e = ixy & 0xff
-        self.debug('LD E, I%sL' % 'X' if is_ix else 'Y')
+        self.debug('LD E, I%sL' % ('X' if is_ix else 'Y'))
         return 8
 
     def _ld_ixh_src(self, instr, is_ix):
@@ -3112,10 +3111,10 @@ class z80:
 
         if instr & 1:
             self.a = ixy & 255
-            self.debug('LD A, I%sH' % 'X' if is_ix else 'Y')
+            self.debug('LD A, I%sH' % ('X' if is_ix else 'Y'))
         else:
             self.a = ixy >> 8
-            self.debug('LD A, I%sL' % 'X' if is_ix else 'Y')
+            self.debug('LD A, I%sL' % ('X' if is_ix else 'Y'))
 
         return 8
 
@@ -3227,7 +3226,7 @@ class z80:
         self.a ^= self.read_mem(a)
         self.xor_flags()
 
-        self.debug('XOR (I%s + *)' % 'X' if is_ix else 'Y')
+        self.debug('XOR (I%s + *)' % ('X' if is_ix else 'Y'))
         return 19
 
     def _or_a_ixy_deref(self, instr, is_ix):
@@ -3238,7 +3237,7 @@ class z80:
         self.a |= self.read_mem(a)
         self.or_flags()
 
-        self.debug('OR (I%s + *)' % 'X' if is_ix else 'Y')
+        self.debug('OR (I%s + *)' % ('X' if is_ix else 'Y'))
         return 19
 
     def _cp_a_ixy_deref(self, instr, is_ix):
@@ -3250,7 +3249,7 @@ class z80:
         self.flags_add_sub_cp(True, False, v)
         self.set_flag_53(v)
 
-        self.debug('CP (I%s + *)' % 'X' if is_ix else 'Y')
+        self.debug('CP (I%s + *)' % ('X' if is_ix else 'Y'))
 
         return 8
 
@@ -3438,7 +3437,7 @@ class z80:
 
         self.memptr = org_sp_deref
 
-        self.debug('EX (SP),%s' % 'IX' if is_ix else 'IY')
+        self.debug('EX (SP),%s' % ('IX' if is_ix else 'IY'))
         return 23
 
     def _ini(self, instr):
