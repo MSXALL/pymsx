@@ -3312,12 +3312,13 @@ class z80:
         val &= ~(1 << bit)
         val &= 0xff
 
-        self.write_mem(a ,val)
+        self.write_mem(a, val)
 
         dst = instr & 7
-        dst_name = self.set_dst(dst, val)
-
-        self.set_flag_53(val)
+        if dst != 6:
+            dst_name = self.set_dst(dst, val)
+        else:
+            dst_name = ''
 
         self.debug('RES (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
@@ -3331,15 +3332,16 @@ class z80:
         val = self.read_mem(a)
 
         bit = (instr - 0xc0) >> 3
-        val |= ~(1 << bit)
+        val |= 1 << bit
         val &= 0xff
 
-        self.write_mem(a ,val)
-
-        self.set_flag_53(val)
+        self.write_mem(a, val)
 
         dst = instr & 7
-        dst_name = self.set_dst(dst, val)
+        if dst != 6:
+            dst_name = self.set_dst(dst, val)
+        else:
+            dst_name = ''
 
         self.debug('SET (%s + 0x%02x), %s' % (name, offset, dst_name))
         return 23
