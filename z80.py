@@ -1391,11 +1391,13 @@ class z80:
         return 15
 
     def _add_pair(self, instr):
-        self.add_pair(instr >> 4, False)
+        name = self.add_pair(instr >> 4, False)
+        self.debug('ADD HL, %s' % name)
         return 11
 
     def _adc_pair(self, instr):
-        self.add_pair((instr >> 4) - 4, True)
+        name = self.add_pair((instr >> 4) - 4, True)
+        self.debug('ADC HL, %s' % name)
         return 15
 
     def add_pair(self, which, is_adc):
@@ -1417,7 +1419,7 @@ class z80:
 
         self.memptr = (org_val + 1) & 0xffff
 
-        self.debug('ADD HL, %s' % name)
+        return name
 
     def _dec_pair(self, instr):
         which = instr >> 4
@@ -1717,6 +1719,7 @@ class z80:
         self.ed_jumps[0x64] = self._neg
         self.ed_jumps[0x65] = self._retn
         self.ed_jumps[0x66] = self._im
+        self.ed_jumps[0x67] = self._rrd_rld
         self.ed_jumps[0x68] = self._in_ed_high
         self.ed_jumps[0x69] = self._out_c_high
         self.ed_jumps[0x6a] = self._adc_pair
@@ -1724,7 +1727,7 @@ class z80:
         self.ed_jumps[0x6c] = self._neg
         self.ed_jumps[0x6d] = self._retn
         self.ed_jumps[0x6e] = self._im
-        self.ed_jumps[0x6f] = self._rld
+        self.ed_jumps[0x6f] = self._rrd_rld
         self.ed_jumps[0x71] = self._out_c_low
         self.ed_jumps[0x72] = self._sbc_pair
         self.ed_jumps[0x73] = self._ld_mem_pair
@@ -1754,11 +1757,12 @@ class z80:
 
     def _retn(self, instr):
         self.pc = self.pop()
+        self.memptr = self.pc
         self.iff1 = self.iff2
         self.debug('RETN')
         return 14
 
-    def _rld(self, instr):
+    def _rrd_rld(self, instr):
         a = self.m16(self.h, self.l)
         v_hl = self.read_mem(a)
 
@@ -1768,9 +1772,15 @@ class z80:
         ln_a = self.a & 15
         hn_a = self.a >> 4
 
-        new_hl = (ln_hl << 4) | ln_a
-        new_a = (hn_a << 4) | ln_hl
-
+        if instr == 0x67:
+            # rrd
+            new_hl = ln_hl | (ln_a << 4)
+            new_a = hn_a | (ln_hl << 4)
+        else:
+            # rld
+            new_hl = (ln_hl << 4) | ln_a
+            new_a = (hn_a << 4) | ln_hl
+        
         self.write_mem(a, new_hl)
         self.a = new_a
         self.set_flag_53(self.a)
@@ -1783,7 +1793,7 @@ class z80:
 
         self.memptr = (a + 1) & 0xffff
 
-        self.debug('RLD')
+        self.debug('RRD' if instr == 0x67 else 'RLD')
         return 18
 
     def _ld_i_a(self, instr):
@@ -2388,21 +2398,16 @@ class z80:
         (v, name) = self.get_pair(which)
         before = self.m16(self.h, self.l)
 
-        org_f = self.f
         result = self.flags_add_sub_cp16(True, True, before, v)
-        new_f = self.f  # hacky
-        self.f = org_f
-        self.set_flag_c((new_f & 1) == 1)
-        self.set_flag_n((new_f & 2) == 2)
-        self.set_flag_h((new_f & 16) == 16)
+        (self.h, self.l) = self.u16(result)
 
         self.set_flag_53(result >> 8)
  
-        self.set_pair(2, result & 0xffff)
+        self.set_pair(2, result)
 
         self.memptr = (before + 1) & 0xffff
 
-        self.debug('SUB HL,%s' % name)
+        self.debug('SBC HL,%s' % name)
         return 15
 
     def _neg(self, instr):
@@ -2457,6 +2462,8 @@ class z80:
             assert False
 
         self.out(self.c, v)
+
+        self.memptr = (self.m16(self.b, self.c) + 1) & 0xffff
 
         self.debug('OUT (C), %s' % name)
         return 12
