@@ -1413,11 +1413,14 @@ class z80:
         self.set_flag_n((new_f & 2) == 2)
         self.set_flag_h((new_f & 16) == 16)
 
+        self.memptr = (org_val + 1) & 0xffff
         self.set_flag_53(result >> 8)
 
-        (self.h, self.l) = self.u16(result)
+        if is_adc:
+            self.set_flag_z(result == 0)
+            self.set_flag_s((result & 0x8000) == 0x8000)
 
-        self.memptr = (org_val + 1) & 0xffff
+        (self.h, self.l) = self.u16(result)
 
         return name
 
@@ -2667,7 +2670,7 @@ class z80:
         return 21  # FIXME or 16?
 
     def cpi_cpd_flags(self):
-        self.set_flag_pv(self.b or self.c)
+        self.set_flag_pv(self.b != 0 or self.c != 0)
 
         hl = self.m16(self.h, self.l)
         v = self.read_mem(hl)
