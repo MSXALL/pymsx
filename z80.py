@@ -1744,6 +1744,7 @@ class z80:
         self.ed_jumps[0x7e] = self._im
         self.ed_jumps[0xa0] = self._ldi
         self.ed_jumps[0xa1] = self._cpi
+        self.ed_jumps[0xa2] = self._ini
         self.ed_jumps[0xa3] = self._outi
         self.ed_jumps[0xb0] = self._ldir
         self.ed_jumps[0xb1] = self._cpir
@@ -2485,14 +2486,15 @@ class z80:
         elif which == 3:
             v = self.a
             name = 'A'
-            self.memptr = (self.m16(self.b, self.c) + 1) & 0xffff
         else:
             assert False
-        return 12
+
+        self.memptr = (self.m16(self.b, self.c) + 1) & 0xffff
 
         self.out(self.c, v)
 
         self.debug('OUT (C), %s' % name)
+        return 12
 
     def _jp_ref_iy(self):
         self.pc = self.iy
@@ -2638,10 +2640,7 @@ class z80:
         (self.h, self.l) = self.u16(a)
         (self.b, self.c) = self.u16(c)
 
-        self.set_flag_n(True)
-        self.set_flag_pv(False)
-        self.set_flag_s(result < 0)
-        self.set_flag_z(result == 0)
+        self.cpi_cpd_flags()
 
         self.debug('CPDR')
         return 21  # FIXME or 16?
@@ -2667,6 +2666,19 @@ class z80:
         self.debug('OTIR')
         return 21  # FIXME or 16?
 
+    def cpi_cpd_flags(self):
+        self.set_flag_pv(self.b or self.c)
+
+        hl = self.m16(self.h, self.l)
+        v = self.read_mem(hl)
+
+        result = self.a - v
+        self.set_flag_z(result == 0)
+        self.set_flag_s((result & 0x80) == 0x80)
+        result -= self.get_flag_h()
+        self.set_flag_h((((self.a & 0x0f) - (v & 0x0f)) & 0x10) != 0)
+        self.set_flag_53(result)
+
     def _cpi(self, instr):
         a = self.m16(self.h, self.l)
         c = self.m16(self.b, self.c)
@@ -2678,15 +2690,12 @@ class z80:
         a = self.incp16(a)
         c = self.decp16(c)
 
-        result = self.a - mem
-
         (self.h, self.l) = self.u16(a)
         (self.b, self.c) = self.u16(c)
 
-        self.set_flag_n(True)
-        self.set_flag_pv(False)
-        self.set_flag_s(result < 0)
-        self.set_flag_z(result == 0)
+        self.cpi_cpd_flags()
+
+        self.memptr += 1
 
         self.debug('CPI')
         return 16
@@ -3423,3 +3432,22 @@ class z80:
 
         self.debug('EX (SP),%s' % 'IX' if is_ix else 'IY')
         return 23
+
+    def _ini(self, instr):
+        v = self.in_(self.c)
+
+        a = self.m16(self.h, self.l)
+        self.write_mem(a, v)
+
+        a = (a + 1) & 0xffff
+        (self.h, self.l) = self.u16(a)
+
+        self.memptr = self.m16(self.b, self.c)
+        self.b = (self.b - 1) & 0xff
+        self.set_flag_53(self.b)
+
+        self.set_flag_n(True)
+        self.set_flag_z(self.b == 0)
+
+        self.debug('INI')
+        return 16
