@@ -225,7 +225,7 @@ while True:
     if not descr:
         break
 
-    print(descr)
+    # print(descr)
 
     cpu.reset()
     reset_mem()
@@ -314,4 +314,4 @@ while True:
         m = f['mem']
 
         for c in m:
-            my_assert(f, cpu.read_mem(c[0]) == c[1], 'mem: %04x = %02x' % (c[0], c[1])) 
+            my_assert(f, cpu.read_mem(c[0]) == c[1], 'mem: %04x = %02x (is: %02x)' % (c[0], c[1], cpu.read_mem(c[0]))) 
