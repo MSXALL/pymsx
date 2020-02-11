@@ -1728,6 +1728,7 @@ class z80:
         self.ed_jumps[0x6d] = self._retn
         self.ed_jumps[0x6e] = self._im
         self.ed_jumps[0x6f] = self._rrd_rld
+        self.ed_jumps[0x70] = self._in_ed_low
         self.ed_jumps[0x71] = self._out_c_low
         self.ed_jumps[0x72] = self._sbc_pair
         self.ed_jumps[0x73] = self._ld_mem_pair
@@ -1742,6 +1743,7 @@ class z80:
         self.ed_jumps[0x7d] = self._retn
         self.ed_jumps[0x7e] = self._im
         self.ed_jumps[0xa0] = self._ldi
+        self.ed_jumps[0xa1] = self._cpi
         self.ed_jumps[0xa3] = self._outi
         self.ed_jumps[0xb0] = self._ldir
         self.ed_jumps[0xb1] = self._cpir
@@ -2511,8 +2513,16 @@ class z80:
         elif which == 2:
             self.h = v
             name = 'H'
+        elif which == 3:
+            name = ''
         else:
             assert False
+
+        self.set_flag_n(False)
+        self.set_flag_pv(self.parity(v))
+        self.set_flag_h(False)
+        self.set_flag_z(v == 0)
+        self.set_flag_s((v & 0x80) == 0x80)
 
         self.memptr = (self.m16(self.b, self.c) + 1) & 0xffff
 
@@ -2537,6 +2547,12 @@ class z80:
             name = 'A'
         else:
             assert False
+
+        self.set_flag_n(False)
+        self.set_flag_pv(self.parity(v))
+        self.set_flag_h(False)
+        self.set_flag_z(v == 0)
+        self.set_flag_s((v & 0x80) == 0x80)
 
         self.debug('IN %s,(C)' % name)
         return 12
@@ -2650,6 +2666,30 @@ class z80:
 
         self.debug('OTIR')
         return 21  # FIXME or 16?
+
+    def _cpi(self, instr):
+        a = self.m16(self.h, self.l)
+        c = self.m16(self.b, self.c)
+
+        result = 0
+
+        mem = self.read_mem(a)
+
+        a = self.incp16(a)
+        c = self.decp16(c)
+
+        result = self.a - mem
+
+        (self.h, self.l) = self.u16(a)
+        (self.b, self.c) = self.u16(c)
+
+        self.set_flag_n(True)
+        self.set_flag_pv(False)
+        self.set_flag_s(result < 0)
+        self.set_flag_z(result == 0)
+
+        self.debug('CPI')
+        return 16
 
     def _cpir(self, instr):
         a = self.m16(self.h, self.l)
