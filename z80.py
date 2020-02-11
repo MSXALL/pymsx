@@ -230,7 +230,7 @@ class z80:
             return self._call_flag(self.get_flag_pv(), 'PE')
 
         elif instr == 0xf4:
-            return self._call_flag(self.get_flag_pv(), 'P')
+            return self._call_flag(not self.get_flag_s(), 'P')
 
         elif instr == 0xfc:  # CALL M,**
             return self._call_flag(self.get_flag_s(), 'M')
@@ -2036,7 +2036,7 @@ class z80:
         v = self.read_pc_inc()
 
         result = self.flags_add_sub_cp(True, False, v)
-        self.set_flag_53(result)
+        self.set_flag_53(v)
 
         self.debug('CP 0x%02x' % v)
         return 7
