@@ -1780,27 +1780,25 @@ class z80:
         a = self.m16(self.h, self.l)
         v_hl = self.read_mem(a)
 
-        if instr == 0x67:
-            # rrd
+        if instr == 0x67:  # rrd
             self.a = (self.a & 0xf0) | (v_hl & 0x0f);
             new_hl = (v_hl >> 4) | ((org_a & 0x0f) << 4);
-        elif instr == 0x6f:
-            # rld
+        elif instr == 0x6f:  # rld
             self.a = (self.a & 0xf0) | ((v_hl & 0xf0) >> 4);
             new_hl = ((v_hl << 4) & 0xf0) | (org_a & 0x0f);
         else:
             assert False
         
         self.write_mem(a, new_hl)
-        self.set_flag_53(self.a)
-        
+
         self.set_flag_h(False)
         self.set_flag_n(False)
-        self.set_flag_pv(self.parity(new_hl))
-        self.set_flag_z(new_hl == 0)
-        self.set_flag_s((new_hl & 0x80) == 0x80)
+        self.set_flag_pv(self.parity(self.a))
+        self.set_flag_z(self.a == 0)
+        self.set_flag_s((self.a & 0x80) == 0x80)
 
         self.memptr = (a + 1) & 0xffff
+        self.set_flag_53(self.a)
 
         self.debug('RRD' if instr == 0x67 else 'RLD')
         return 18
