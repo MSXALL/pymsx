@@ -38,7 +38,7 @@ def debug(x):
 
 scc_sig = None
 #scc_rom_file = 'NEMESIS2.ROM'
-scc_rom_file = 'nondos.rom'
+scc_rom_file = 'md1.rom'
 scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
 scc_sig = scc_obj.get_signature() if scc_obj else None
 
@@ -50,10 +50,10 @@ disk_sig = None
 
 gen_sig = None
 #gen_rom_file = 'athletic.rom'
-#gen_rom_file = 'yamaha_msx1_diag.rom'
+gen_rom_file = 'yamaha_msx1_diag.rom'
 #gen_rom_file = '../../msx/trunk/docs/testram.rom'
-#gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
-#gen_sig = gen_obj.get_signature() if gen_obj else None
+gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
+gen_sig = gen_obj.get_signature() if gen_obj else None
 
 subpage = 0x00
 
@@ -168,8 +168,8 @@ def cpu_thread():
     while not stop_flag:
         cpu.step()
 
-#dk = screen_kb_pygame(io)
-dk = screen_kb_ncurses(io)
+dk = screen_kb_pygame(io)
+#dk = screen_kb_ncurses(io)
 dk.start()
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)

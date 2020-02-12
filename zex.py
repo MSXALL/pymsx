@@ -83,6 +83,8 @@ while True:
         elif cpu.c == 9:
             a = cpu.m16(cpu.d, cpu.e)
 
+            str_ = ''
+
             while True:
                 c = cpu.read_mem(a)
                 if c == ord('$'):
@@ -90,7 +92,12 @@ while True:
 
                 print('%c' % c, end='', flush=True)
 
+                str_ += chr(c)
+
                 a += 1
+
+            if 'Tests complete' in str_:
+                break
 
         cpu._ret(True, 'bla')
 
