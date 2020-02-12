@@ -13,6 +13,7 @@ from scc import scc
 from z80 import z80
 from screen_kb_ncurses import screen_kb_ncurses
 from screen_kb_pygame import screen_kb_pygame
+from sound import sound
 
 abort_time = None # 60
 
@@ -38,9 +39,9 @@ def debug(x):
 
 scc_sig = None
 #scc_rom_file = 'NEMESIS2.ROM'
-scc_rom_file = 'md1.rom'
-scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
-scc_sig = scc_obj.get_signature() if scc_obj else None
+#scc_rom_file = 'md1.rom'
+#scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
+#scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
 #disk_rom_file = 'FSFD1.ROM'
@@ -49,8 +50,8 @@ disk_sig = None
 #disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
-#gen_rom_file = 'athletic.rom'
-gen_rom_file = 'yamaha_msx1_diag.rom'
+gen_rom_file = 'athletic.rom'
+#gen_rom_file = 'yamaha_msx1_diag.rom'
 #gen_rom_file = '../../msx/trunk/docs/testram.rom'
 gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
 gen_sig = gen_obj.get_signature() if gen_obj else None
@@ -67,6 +68,8 @@ slots.append(( (rom0, PageType.ROM), None, None, (ram0, PageType.RAM) ))
 slots.append(( (rom1, PageType.ROM), disk_sig if disk_sig else gen_sig, scc_sig, (ram1, PageType.RAM) ))
 slots.append(( None, None, scc_sig, (ram2, PageType.RAM) ))
 slots.append(( None, None, None, (ram3, PageType.RAM) ))
+
+snd = sound(debug)
 
 pages = [ 0, 0, 0, 0]
 
@@ -139,6 +142,9 @@ def read_io(a):
     if a == 0xa8:
         return (pages[3] << 6) | (pages[2] << 4) | (pages[1] << 2) | pages[0]
 
+    if a == 0xa2:
+        return snd.read_io(a)
+
     return io[a]
  
 def write_io(a, v):
@@ -153,6 +159,9 @@ def write_io(a, v):
     if a >= 0x98 and a <= 0x9b:
         dk.write_io(a, v)
         return
+
+    if a == 0xa0 or a == 0xa1:
+        return snd.write_io(a, v)
 
     if a == 0xa8:
         for i in range(0, 4):
