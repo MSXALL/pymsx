@@ -346,7 +346,7 @@ class screen_kb_pygame(screen_kb):
                 msg = 'Unsupported resolution'
 
             took = time.time() - s
-            print('fps: %f, cache hit: %.2f%%' % (1 / took, hit * 100.0 / hitdiv))
+            # print('fps: %f, cache hit: %.2f%%' % (1 / took, hit * 100.0 / hitdiv))
 
             self.debug_msg_lock.acquire()
             if self.debug_msg:
