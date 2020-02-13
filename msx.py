@@ -37,10 +37,12 @@ def debug(x):
         fh.write('%s <%02x/%02x>\n' % (x, io[0xa8], subpage))
         fh.close()
 
+snd = sound(debug)
+
 scc_sig = None
 #scc_rom_file = 'NEMESIS2.ROM'
 #scc_rom_file = 'md1.rom'
-#scc_obj = scc(scc_rom_file, debug) if scc_rom_file else None
+#scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
 #scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
@@ -68,8 +70,6 @@ slots.append(( (rom0, PageType.ROM), None, None, (ram0, PageType.RAM) ))
 slots.append(( (rom1, PageType.ROM), disk_sig if disk_sig else gen_sig, scc_sig, (ram1, PageType.RAM) ))
 slots.append(( None, None, scc_sig, (ram2, PageType.RAM) ))
 slots.append(( None, None, None, (ram3, PageType.RAM) ))
-
-snd = sound(debug)
 
 pages = [ 0, 0, 0, 0]
 
