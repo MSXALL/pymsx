@@ -146,8 +146,6 @@ class sound():
             s += self.get_scc_reg_s(0x40 + (int(self.td * self.mul_scc_3) & 0x1f)) * self.vol_scc_3 / 128.0
             s += self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_4) & 0x1f)) * self.vol_scc_4 / 128.0
             s += self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_5) & 0x1f)) * self.vol_scc_5 / 128.0
-            print(self.td, self.mul_scc_1, self.mul_scc_2, self.mul_scc_3, self.mul_scc_4, self.mul_scc_5)
-            print(self.get_scc_reg_s(0x00 + (int(self.td * self.mul_scc_1) & 0x1f)) * self.vol_scc_1 / 128.0 , self.get_scc_reg_s(0x20 + (int(self.td * self.mul_scc_2) & 0x1f)) * self.vol_scc_2 / 128.0 , self.get_scc_reg_s(0x40 + (int(self.td * self.mul_scc_3) & 0x1f)) * self.vol_scc_3 / 128.0 , self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_4) & 0x1f)) * self.vol_scc_4 / 128.0 , self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_5) & 0x1f)) * self.vol_scc_5 / 128.0)
 
             self.td += 1.0
 
@@ -162,7 +160,7 @@ class sound():
 
     def set_scc(self, a, v):
         assert v >= 0 and v <= 255
-        print('SCC: set reg %02x to %d' % (a, v), file=sys.stderr)
+        # print('SCC: set reg %02x to %d' % (a, v), file=sys.stderr)
 
         self.scc_regs[a] = v
 
@@ -181,19 +179,16 @@ class sound():
         freq_3 = 3579545.0 / 32 / (nn_3 if nn_3 > 0 else 1)
         freq_4 = 3579545.0 / 32 / (nn_4 if nn_4 > 0 else 1)
         freq_5 = 3579545.0 / 32 / (nn_5 if nn_5 > 0 else 1)
-        print('GREP1', freq_1, freq_2, freq_3, freq_4, freq_5, file=sys.stderr)
         self.mul_scc_1 = (freq_1 / self.sr) * 32.0
         self.mul_scc_2 = (freq_2 / self.sr) * 32.0
         self.mul_scc_3 = (freq_3 / self.sr) * 32.0
         self.mul_scc_4 = (freq_4 / self.sr) * 32.0
         self.mul_scc_5 = (freq_5 / self.sr) * 32.0
-        print('GREP2', self.mul_scc_1, self.mul_scc_2, self.mul_scc_3, self.mul_scc_4, self.mul_scc_5, file=sys.stderr)
         self.vol_scc_1 = (self.scc_regs[0x8a] & 15) / 15.0 if self.scc_regs[0x8f] & 1 else 0
         self.vol_scc_2 = (self.scc_regs[0x8b] & 15) / 15.0 if self.scc_regs[0x8f] & 2 else 0
         self.vol_scc_3 = (self.scc_regs[0x8c] & 15) / 15.0 if self.scc_regs[0x8f] & 4 else 0
         self.vol_scc_4 = (self.scc_regs[0x8d] & 15) / 15.0 if self.scc_regs[0x8f] & 8 else 0
         self.vol_scc_5 = (self.scc_regs[0x8e] & 15) / 15.0 if self.scc_regs[0x8f] & 16 else 0
-        print('GREP3', self.vol_scc_1, self.vol_scc_2, self.vol_scc_3, self.vol_scc_4, self.vol_scc_5, file=sys.stderr)
 
     def read_io(self, a):
         if self.ri == 14:
