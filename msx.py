@@ -161,7 +161,8 @@ def write_io(a, v):
         return
 
     if a == 0xa0 or a == 0xa1:
-        return snd.write_io(a, v)
+        snd.write_io(a, v)
+        return
 
     if a == 0xa8:
         for i in range(0, 4):
@@ -177,8 +178,8 @@ def cpu_thread():
     while not stop_flag:
         cpu.step()
 
-dk = screen_kb_pygame(io)
-#dk = screen_kb_ncurses(io)
+#dk = screen_kb_pygame(io)
+dk = screen_kb_ncurses(io)
 dk.start()
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)
