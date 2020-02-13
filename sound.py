@@ -17,10 +17,15 @@ class sound():
         self.debug = debug
 
         self.ri = 0
-        self.regs = [ 0 ] * 16
+        self.psg_regs = [ 0 ] * 16
         self.prev_reg13 = None
 
-        self.sr = 44100
+        self.scc_regs = [ 0 ] * 256
+        self.td = 0
+        self.mul_scc_1 = self.mul_scc_2 = self.mul_scc_3 = self.mul_scc_4 = self.mul_scc_5 = 0.0
+        self.vol_scc_1 = self.vol_scc_2 = self.vol_scc_3 = self.vol_scc_4 = self.vol_scc_5 = 0.0
+
+        self.sr = 22050
 
         self.phase1 = self.phase2 = self.phase3 = 0
         self.f1 = self.f2 = self.f3 = 0
@@ -39,38 +44,34 @@ class sound():
         pid = os.fork()
 
         if pid == 0:
-            try:
-                self.p = pyaudio.PyAudio()
-                self.stream = self.p.open(format=self.p.get_format_from_width(2, unsigned=False), channels=1, rate=self.sr, output=True, stream_callback=self.callback)
+            self.p = pyaudio.PyAudio()
+            self.stream = self.p.open(format=self.p.get_format_from_width(2, unsigned=False), channels=1, rate=self.sr, output=True, stream_callback=self.callback)
 
-                while True:
-                    type_ = struct.unpack('<B', os.read(self.pipein, 1))[0]
+            while True:
+                type_ = struct.unpack('<B', os.read(self.pipein, 1))[0]
 
-                    if type_ == sound.T_AY_3_8910:
-                        a = struct.unpack('<B', os.read(self.pipein, 1))[0]
-                        if a > 15:
-                            self.debug('SOUND: index out of range %d' % a)
-                            break
+                if type_ == sound.T_AY_3_8910:
+                    a = struct.unpack('<B', os.read(self.pipein, 1))[0]
+                    if a > 15:
+                        # self.debug('PSG: index out of range %d' % a)
+                        break
 
-                        v = struct.unpack('<B', os.read(self.pipein, 1))[0]
+                    v = struct.unpack('<B', os.read(self.pipein, 1))[0]
 
-                        print('SOUND: set reg %d to %d' % (a, v), file=sys.stderr)
+                    # print('PSG: set reg %d to %d' % (a, v), file=sys.stderr)
 
-                        with self.lock:
-                            self.regs[a] = v
+                    with self.lock:
+                        self.psg_regs[a] = v
 
-                            self.recalc_channels(False)
+                        self.recalc_channels(False)
 
-                    else:
-                        assert False
+                else:
+                    assert False
 
-                self.stream.stop_stream()
-                self.stream.close()
-                self.p.terminate()
+            self.stream.stop_stream()
+            self.stream.close()
+            self.p.terminate()
             
-            except Exception as e:
-                print('audio-process failed: %s' % e, file=sys.stderr)
-
             sys.exit(1)
 
         pygame.midi.init()
@@ -104,12 +105,17 @@ class sound():
 
             if self.channel_on[ch][1] == 0 or upd_instr:
                 # make sure we use the correct instrument
-                self.mp.set_instrument(81 + (self.regs[13] & 15), channel=ch)
+                self.mp.set_instrument(81 + (self.psg_regs[13] & 15), channel=ch)
 
             self.channel_on[ch] = [ n, v ]
 
             self.mp.write_short(0x90 + ch, n, v)
             #print('%f] %02x %02x %d' % (now, 0x90 + ch, n, v), file=sys.stderr)
+
+    def get_scc_reg_s(self, a):
+        v = self.scc_regs[a]
+
+        return -(256 - v) if v & 127 else v
 
     def callback(self, in_data, frame_count, time_info, status):
         with self.lock:
@@ -125,7 +131,16 @@ class sound():
 
         for i in range(0, frame_count):
             s = math.sin(self.phase1) * self.l1 + math.sin(self.phase2) * self.l2 + math.sin(self.phase3) * self.l3
-            word = int(s / 3.0 * 32767)
+
+            s += self.get_scc_reg_s(0x00 + (int(self.td * self.mul_scc_1) & 0x1f)) * self.vol_scc_1 / 128.0
+            s += self.get_scc_reg_s(0x20 + (int(self.td * self.mul_scc_2) & 0x1f)) * self.vol_scc_2 / 128.0
+            s += self.get_scc_reg_s(0x40 + (int(self.td * self.mul_scc_3) & 0x1f)) * self.vol_scc_3 / 128.0
+            s += self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_4) & 0x1f)) * self.vol_scc_4 / 128.0
+            s += self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_5) & 0x1f)) * self.vol_scc_5 / 128.0
+
+            self.td += 1.0
+
+            word = int(s / 8.0 * 32767)
             out += struct.pack('<h', word)
 
             self.phase1 += self.p1a
@@ -134,15 +149,44 @@ class sound():
 
         return (out, pyaudio.paContinue)
 
+    def set_scc(self, a, v):
+        self.scc_regs[a] = v
+
+        print('SCC: set reg %02x to %d' % (a, v), file=sys.stderr)
+
+        nn_1 = ((self.scc_regs[0x81] & 15) << 8) + self.scc_regs[0x80]
+        nn_2 = ((self.scc_regs[0x83] & 15) << 8) + self.scc_regs[0x82]
+        nn_3 = ((self.scc_regs[0x85] & 15) << 8) + self.scc_regs[0x84]
+        nn_4 = ((self.scc_regs[0x87] & 15) << 8) + self.scc_regs[0x86]
+        nn_5 = ((self.scc_regs[0x89] & 15) << 8) + self.scc_regs[0x88]
+        freq_1 = 3579545.0 / (nn_1 if nn_1 > 0 else 1)
+        freq_2 = 3579545.0 / (nn_2 if nn_2 > 0 else 1)
+        freq_3 = 3579545.0 / (nn_3 if nn_3 > 0 else 1)
+        freq_4 = 3579545.0 / (nn_4 if nn_4 > 0 else 1)
+        freq_5 = 3579545.0 / (nn_5 if nn_5 > 0 else 1)
+        self.mul_scc_1 = (freq_1 / self.sr) * 32.0
+        self.mul_scc_2 = (freq_2 / self.sr) * 32.0
+        self.mul_scc_3 = (freq_3 / self.sr) * 32.0
+        self.mul_scc_4 = (freq_4 / self.sr) * 32.0
+        self.mul_scc_5 = (freq_5 / self.sr) * 32.0
+        self.vol_scc_1 = (self.scc_regs[0x8a] & 15) / 15.0 if self.scc_regs[0x8f] & 1 else 0
+        self.vol_scc_2 = (self.scc_regs[0x8b] & 15) / 15.0 if self.scc_regs[0x8f] & 2 else 0
+        self.vol_scc_3 = (self.scc_regs[0x8c] & 15) / 15.0 if self.scc_regs[0x8f] & 4 else 0
+        self.vol_scc_4 = (self.scc_regs[0x8d] & 15) / 15.0 if self.scc_regs[0x8f] & 8 else 0
+        self.vol_scc_5 = (self.scc_regs[0x8e] & 15) / 15.0 if self.scc_regs[0x8f] & 16 else 0
+
     def read_io(self, a):
-        return self.regs[self.ri]
+        if self.ri == 14:
+            self.psg_regs[self.ri] |= 48
+ 
+        return self.psg_regs[self.ri]
 
     def write_io(self, a, v):
         if a == 0xa0:
             self.ri = v & 15
 
         elif a == 0xa1:
-            self.regs[self.ri] = v
+            self.psg_regs[self.ri] = v
             self.debug('Sound %02x: %02x (%d)' % (self.ri, v, v))
 
             os.write(self.pipeout, sound.T_AY_3_8910.to_bytes(1, 'big'))
@@ -158,19 +202,19 @@ class sound():
         self.f1 = self.f2 = self.f3 = 0
         self.l1 = self.l2 = self.l3 = 0
 
-        fi1 = self.regs[0] + ((self.regs[1] & 15) << 8)
+        fi1 = self.psg_regs[0] + ((self.psg_regs[1] & 15) << 8)
         if fi1:
             self.f1 = base_freq / fi1
-        fi2 = self.regs[2] + ((self.regs[3] & 15) << 8)
+        fi2 = self.psg_regs[2] + ((self.psg_regs[3] & 15) << 8)
         if fi2:
             self.f2 = base_freq / fi2
-        fi3 = self.regs[4] + ((self.regs[5] & 15) << 8)
+        fi3 = self.psg_regs[4] + ((self.psg_regs[5] & 15) << 8)
         if fi3:
             self.f3 = base_freq / fi3
 
-        self.l1 = 1.0 if self.regs[8] & 16 else (self.regs[8] & 15) / 15.0
-        self.l2 = 1.0 if self.regs[9] & 16 else (self.regs[9] & 15) / 15.0
-        self.l3 = 1.0 if self.regs[10] & 16 else (self.regs[10] & 15) / 15.0
+        self.l1 = 1.0 if self.psg_regs[8] & 16 else (self.psg_regs[8] & 15) / 15.0
+        self.l2 = 1.0 if self.psg_regs[9] & 16 else (self.psg_regs[9] & 15) / 15.0
+        self.l3 = 1.0 if self.psg_regs[10] & 16 else (self.psg_regs[10] & 15) / 15.0
 
         if self.ri == 8 and self.l1 == 0:
             self.phase1 = 0
@@ -179,36 +223,13 @@ class sound():
         elif self.ri == 10 and self.l3 == 0:
             self.phase3 = 0
 
-        upd_instr = self.prev_reg13 != self.regs[13]
-        self.prev_reg13 = self.regs[13]
+        upd_instr = self.prev_reg13 != self.psg_regs[13]
+        self.prev_reg13 = self.psg_regs[13]
 
         if midi:
             self.send_midi(1, self.f1, self.l1, upd_instr)
             self.send_midi(2, self.f2, self.l2, upd_instr)
             self.send_midi(3, self.f3, self.l3, upd_instr)
-
-            base_freq = 3579545 / 16.0
-
-            f1 = f2 = f3 = 0
-
-            fi1 = self.regs[0] + ((self.regs[1] & 15) << 8)
-            if fi1:
-                f1 = base_freq / fi1
-            self.p1a = 2.0 * math.pi * f1 / self.sr
-
-            fi2 = self.regs[2] + ((self.regs[3] & 15) << 8)
-            if fi2:
-                f2 = base_freq / fi2
-            self.p2a = 2.0 * math.pi * f2 / self.sr
-
-            fi3 = self.regs[4] + ((self.regs[5] & 15) << 8)
-            if fi3:
-                f3 = base_freq / fi3
-            self.p3a = 2.0 * math.pi * f3 / self.sr
-
-            self.l1 = 1.0 if self.regs[8] & 16 else (self.regs[8] & 15) / 15.0
-            self.l2 = 1.0 if self.regs[9] & 16 else (self.regs[9] & 15) / 15.0
-            self.l3 = 1.0 if self.regs[10] & 16 else (self.regs[10] & 15) / 15.0
 
     def stop(self):
         del self.mp

@@ -3,9 +3,10 @@
 
 import sys
 from pagetype import PageType
+from sound import sound
 
 class scc:
-    def __init__(self, scc_rom_file, debug):
+    def __init__(self, scc_rom_file, snd, debug):
         print('Loading SCC rom %s...' % scc_rom_file, file=sys.stderr)
 
         fh = open(scc_rom_file, 'rb')
@@ -15,6 +16,8 @@ class scc:
         self.n_pages = (len(self.scc_rom) + 0x1fff) // 0x2000
 
         self.scc_pages = [ 0, 1, 2, 3 ]
+
+        self.snd = snd
 
         self.debug = debug
 
@@ -31,12 +34,15 @@ class scc:
             self.debug('Set bank %d to %d/%d (%04x)' % (bank, v, and_, a))
             self.scc_pages[bank] = and_
 
+        elif a >= 0x9800 and a <= 0xafff0:
+            self.snd.set_scc(a & 0xff, v)
+
         else:
             self.debug('SCC write to %04x not understood' % a)
 
     def read_mem(self, a):
         bank = (a >> 13) - 2
-        print('%04x, SCC bank %d, p: %d' % (a, bank, self.scc_pages[bank]), file=sys.stderr)
+        #print('%04x, SCC bank %d, p: %d' % (a, bank, self.scc_pages[bank]), file=sys.stderr)
         offset = a & 0x1fff
         p = self.scc_pages[bank] * 0x2000 + offset
 
