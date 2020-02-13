@@ -12,8 +12,8 @@ from pagetype import PageType
 from scc import scc
 from z80 import z80
 from screen_kb_ncurses import screen_kb_ncurses
-from screen_kb_pygame import screen_kb_pygame
-from sound import sound
+#from screen_kb_pygame import screen_kb_pygame
+#from sound import sound
 from memmapper import memmap
 
 abort_time = None # 60
@@ -38,7 +38,7 @@ def debug(x):
         fh.write('%s <%02x/%02x>\n' % (x, io[0xa8], subpage))
         fh.close()
 
-snd = sound(debug)
+snd = None  # sound(debug)
 
 scc_sig = None
 #scc_rom_file = 'NEMESIS2.ROM'
@@ -133,7 +133,8 @@ def read_io(a):
         return (pages[3] << 6) | (pages[2] << 4) | (pages[1] << 2) | pages[0]
 
     if a == 0xa2:
-        return snd.read_io(a)
+        if snd:
+            return snd.read_io(a)
 
     if a >= 0xfc:
         return mm.read_io(a)
@@ -154,8 +155,9 @@ def write_io(a, v):
         return
 
     if a == 0xa0 or a == 0xa1:
-        snd.write_io(a, v)
-        return
+        if snd:
+            snd.write_io(a, v)
+            return
 
     if a >= 0xfc:
         mm.write_io(a, v)
@@ -175,8 +177,8 @@ def cpu_thread():
     while not stop_flag:
         cpu.step()
 
-dk = screen_kb_pygame(io)
-#dk = screen_kb_ncurses(io)
+#dk = screen_kb_pygame(io)
+dk = screen_kb_ncurses(io)
 dk.start()
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)

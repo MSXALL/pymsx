@@ -3,7 +3,6 @@
 
 import sys
 from pagetype import PageType
-from sound import sound
 
 class memmap:
     def __init__(self, n_pages, debug):
@@ -34,10 +33,10 @@ class memmap:
         return 0xee
 
     def write_io(self, a, v):
-        self.debug('write %02x: %d' % (a, v), file=sys.stderr)
+        self.debug('memmap write %02x: %d' % (a, v), file=sys.stderr)
         self.mapper[a - 0xfc] = v
 
     def read_io(self, a):
-        self.debug('read %02x' % a, file=sys.stderr)
+        self.debug('memmap read %02x' % a, file=sys.stderr)
         return self.mapper[a - 0xfc]
 

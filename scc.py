@@ -3,7 +3,6 @@
 
 import sys
 from pagetype import PageType
-from sound import sound
 
 class scc:
     def __init__(self, scc_rom_file, snd, debug):
