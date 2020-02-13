@@ -8,3 +8,4 @@ class PageType(Enum):
     RAM = 2
     SCC = 3
     DISK = 4
+    MEMMAP = 5

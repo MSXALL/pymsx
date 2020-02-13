@@ -14,6 +14,7 @@ from z80 import z80
 from screen_kb_ncurses import screen_kb_ncurses
 from screen_kb_pygame import screen_kb_pygame
 from sound import sound
+from memmapper import memmap
 
 abort_time = None # 60
 
@@ -52,26 +53,24 @@ disk_sig = None
 #disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
-gen_rom_file = 'athletic.rom'
+#gen_rom_file = 'athletic.rom'
 #gen_rom_file = 'yamaha_msx1_diag.rom'
-#gen_rom_file = '../../msx/trunk/docs/testram.rom'
+gen_rom_file = '../../msx/trunk/docs/testram.rom'
 gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
 gen_sig = gen_obj.get_signature() if gen_obj else None
 
 subpage = 0x00
 
-ram0 = [ 0 ] * 16384
-ram1 = [ 0 ] * 16384
-ram2 = [ 0 ] * 16384
-ram3 = [ 0 ] * 16384
+mm = memmap(256, debug)
+mm_sig = mm.get_signature()
 
 slots = [ ] # slots
-slots.append(( (rom0, PageType.ROM), None, None, (ram0, PageType.RAM) ))
-slots.append(( (rom1, PageType.ROM), disk_sig if disk_sig else gen_sig, scc_sig, (ram1, PageType.RAM) ))
-slots.append(( None, None, scc_sig, (ram2, PageType.RAM) ))
-slots.append(( None, None, None, (ram3, PageType.RAM) ))
+slots.append(( (rom0, PageType.ROM), None, None, mm_sig ))
+slots.append(( (rom1, PageType.ROM), disk_sig if disk_sig else gen_sig, scc_sig, mm_sig ))
+slots.append(( None, None, scc_sig, mm_sig ))
+slots.append(( None, None, None, mm_sig ))
 
-pages = [ 0, 0, 0, 0]
+pages = [ 0, 0, 0, 0 ]
 
 def read_mem(a):
     global subpage
@@ -87,12 +86,8 @@ def read_mem(a):
 
     slot_type = slot[1]
 
-    if slot_type == PageType.SCC:
-        obj = slots[page][pages[page]][2]
-        return obj.read_mem(a)
-
-    if slot_type == PageType.DISK:
-        obj = slots[page][pages[page]][2]
+    if slot_type in (PageType.SCC, PageType.DISK, PageType.MEMMAP):
+        obj = slot[2]
         return obj.read_mem(a)
 
     return slot[0][a & 0x3fff]
@@ -121,12 +116,7 @@ def write_mem(a, v):
         debug('Writing %02x to %04x which is ROM' % (v, a))
         return
     
-    if slot_type == PageType.SCC:
-        obj = slot[2]
-        obj.write_mem(a, v)
-        return
-    
-    if slot_type == PageType.DISK:
+    if slot_type in (PageType.SCC, PageType.DISK, PageType.MEMMAP):
         obj = slot[2]
         obj.write_mem(a, v)
         return
@@ -134,7 +124,7 @@ def write_mem(a, v):
     slot[0][a & 0x3fff] = v
 
 def read_io(a):
-    # debug('Get I/O register %02x' % a)
+    debug('Get I/O register %02x' % a)
 
     if (a >= 0x98 and a <= 0x9b) or a == 0xa9:
         return dk.read_io(a)
@@ -145,12 +135,15 @@ def read_io(a):
     if a == 0xa2:
         return snd.read_io(a)
 
+    if a >= 0xfc:
+        return mm.read_io(a)
+
     return io[a]
  
 def write_io(a, v):
     assert v >= 0 and v <= 255
 
-    #debug('Set I/O register %02x to %02x' % (a, v))
+    debug('Set I/O register %02x to %02x' % (a, v))
 
     if a == 0x91:  # printer out
         # FIXME handle strobe
@@ -162,6 +155,10 @@ def write_io(a, v):
 
     if a == 0xa0 or a == 0xa1:
         snd.write_io(a, v)
+        return
+
+    if a >= 0xfc:
+        mm.write_io(a, v)
         return
 
     if a == 0xa8:
