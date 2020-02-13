@@ -171,7 +171,65 @@ class screen_kb_pygame(screen_kb):
                 self.keyboard_queue.append(event)
                 self.k_lock.release()
 
+    def draw_sprite_part(self, off_x, off_y, pattern_offset, color, nr):
+        sc = (self.registers[5] << 7) + nr * 16
+
+        for y in range(off_y, off_y + 8):
+            cur_pattern = self.ram[pattern_offset]
+            pattern_offset += 1
+
+            col = self.ram[sc]
+            i = 128 if col & 8 else 0
+
+            if y >= 192:
+                break
+
+            for x in range(off_x, off_x + 8):
+                if x >= 256:
+                    break
+
+                if cur_pattern & 128:
+                    self.arr[x, y] = color
+
+                cur_pattern <<= 1
+
+            sc += 1
+
+    def draw_sprites(self):
+        attr = (self.registers[5] & 127) << 7
+        patt = self.registers[6] << 11
+
+        for i in range(0, 32):
+            attribute_offset = attr + i * 4
+
+            spx = self.ram[attribute_offset + 0]
+            if spx == 0xd0:
+                break
+
+            colori = self.ram[attribute_offset + 3] & 15;
+            if colori == 0:
+                continue
+
+            rgb = self.rgb[colori]
+
+            spy = self.ram[attribute_offset + 1]
+
+            pattern_index = self.ram[attribute_offset + 2];
+
+            if self.registers[1] & 2:
+                offset = patt + 8 * pattern_index;
+
+                self.draw_sprite_part(spx + 0, spy + 0, offset + 0, rgb, i)
+                self.draw_sprite_part(spx + 0, spy + 8, offset + 8, rgb, i)
+                self.draw_sprite_part(spx + 8, spy + 0, offset + 16, rgb, i)
+                self.draw_sprite_part(spx + 8, spy + 8, offset + 24, rgb, i)
+
+            else:
+                self.draw_sprite_part(spx, spy, pattern_index, colorfg, nr);
+
     def run(self):
+        self.setName('msx-display')
+
         while not self.stop_flag:
             with self.cv:
                 self.poll_kb()
@@ -245,6 +303,8 @@ class screen_kb_pygame(screen_kb):
                     for y in range(0, 8):
                         for x in range(0, 8):
                             self.arr[scr_x + x, scr_y + y] = cache[cur_char_nr][y * 8 + x]
+
+                self.draw_sprites()
 
                 pygame.surfarray.blit_array(self.screen, self.arr)
                 pygame.display.flip()
