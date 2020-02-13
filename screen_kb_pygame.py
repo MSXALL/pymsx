@@ -202,7 +202,7 @@ class screen_kb_pygame(screen_kb):
         for i in range(0, 32):
             attribute_offset = attr + i * 4
 
-            spx = self.ram[attribute_offset + 0]
+            spx = self.ram[attribute_offset + 1]
             if spx == 0xd0:
                 break
 
@@ -212,7 +212,7 @@ class screen_kb_pygame(screen_kb):
 
             rgb = self.rgb[colori]
 
-            spy = self.ram[attribute_offset + 1]
+            spy = self.ram[attribute_offset + 0]
 
             pattern_index = self.ram[attribute_offset + 2];
 
