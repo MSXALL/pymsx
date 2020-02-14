@@ -43,9 +43,9 @@ class z80:
         self.int = False
 
     def interrupt(self):
-        if self.interrupts and (self.screen.registers[1] & 32) == 32:
+        if self.interrupts: # FIXME and (self.screen.registers[1] & 32) == 32:
             self.int = True
-            self.screen.interrupt()
+            #self.screen.interrupt() FIXME
 
     def in_(self, a):
         return self.read_io(a)

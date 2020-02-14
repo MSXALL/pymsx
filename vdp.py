@@ -4,6 +4,7 @@
 import pygame
 import sys
 import threading
+import time
 
 class vdp(threading.Thread):
     def __init__(self):
@@ -167,16 +168,16 @@ class vdp(threading.Thread):
 
         while not self.stop_flag:
             with self.cv:
-                self.poll_kb()
+                #self.poll_kb()
 
                 while self.redraw == False and self.stop_flag == False:
-                    self.poll_kb()
+                    #self.poll_kb()
 
                     self.cv.wait(0.01)
 
                 self.redraw = False
 
-            msg = self.debug_msg[0:79]
+            #msg = self.debug_msg[0:79]
 
             s = time.time()
             hit = 0
@@ -338,13 +339,14 @@ class vdp(threading.Thread):
                 par = pygame.PixelArray(self.surface)
 
             else:
-                msg = 'Unsupported resolution'
+                #msg = 'Unsupported resolution'
+                pass
 
             took = time.time() - s
             # print('fps: %f, cache hit: %.2f%%' % (1 / took, hit * 100.0 / hitdiv))
 
-            self.debug_msg_lock.acquire()
-            if self.debug_msg:
+            #self.debug_msg_lock.acquire()
+            #if self.debug_msg:
                 #self.win.addstr(25, 0, msg)
-                pass  # FIXME
-            self.debug_msg_lock.release()
+            #    pass  # FIXME
+            #self.debug_msg_lock.release()
