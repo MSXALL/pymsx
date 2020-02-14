@@ -50,8 +50,6 @@ class screen_kb:
 
                     self.vdp.write_io(a, v)
 
-                    self.vdp.refresh()
-
                 elif type_ == screen_kb.MSG_GET_IO:
                     a = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
                     v = self.vdp.read_io(a)
@@ -93,16 +91,13 @@ class screen_kb:
         return (v & 32) == 32
 
     def write_io(self, a, v):
-        assert a == 0x98 or a == 0x99 or a == 0xaa
-
-        #print('Send %02x to %02x' % (a, v))
-
         os.write(self.pipe_tv_out, screen_kb.MSG_SET_IO.to_bytes(1, 'big'))
         os.write(self.pipe_tv_out, a.to_bytes(1, 'big'))
         os.write(self.pipe_tv_out, v.to_bytes(1, 'big'))
 
     def read_io(self, a):
         if a in (0x98, 0x99, 0xa9):
+
             os.write(self.pipe_tv_out, screen_kb.MSG_GET_IO.to_bytes(1, 'big'))
             os.write(self.pipe_tv_out, a.to_bytes(1, 'big'))
 
@@ -113,6 +108,7 @@ class screen_kb:
             assert a_ == a
 
             v = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
+
             return v
 
         print('unexpected port %02x' % a)
