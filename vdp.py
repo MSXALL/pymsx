@@ -44,6 +44,11 @@ class vdp(threading.Thread):
     def init_kb(self):
         self.keys = [ None ] * 16
         self.keys[0] = [ pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7 ]
+        self.keys[1] = [ pygame.K_8, pygame.K_9, pygame.K_MINUS, pygame.K_PLUS, pygame.K_BACKSLASH, pygame.K_LEFTBRACKET, pygame.K_RIGHTBRACKET, pygame.K_SEMICOLON ]
+        self.keys[2] = [ pygame.K_QUOTE, pygame.K_BACKQUOTE, pygame.K_COMMA, pygame.K_PERIOD, pygame.K_SLASH, None, pygame.K_a, pygame.K_b ]
+        self.keys[3] = [ pygame.K_c, pygame.K_d, pygame.K_e, pygame.K_f, pygame.K_g, pygame.K_h, pygame.K_i, pygame.K_j ]
+        self.keys[4] = [ pygame.K_k, pygame.K_l, pygame.K_m, pygame.K_n, pygame.K_o, pygame.K_p, pygame.K_q, pygame.K_r ]
+        self.keys[5] = [ pygame.K_s, pygame.K_t, pygame.K_u, pygame.K_v, pygame.K_w, pygame.K_x, pygame.K_y, pygame.K_z ]
         self.keys[6] = [ pygame.K_LSHIFT, pygame.K_LCTRL, None, pygame.K_CAPSLOCK, None, pygame.K_F1, pygame.K_F2, pygame.K_F3 ]
         self.keys[7] = [ pygame.K_F4, pygame.K_F5, pygame.K_ESCAPE, pygame.K_TAB, None, pygame.K_BACKSPACE, None, pygame.K_RETURN ]
 
@@ -226,7 +231,7 @@ class vdp(threading.Thread):
                 while self.redraw == False and self.stop_flag == False:
                     self.poll_kb()
 
-                    self.cv.wait(0.02)
+                    self.cv.wait(0.01)  # MSX scans 50/60/s
 
             self.redraw = False
 
