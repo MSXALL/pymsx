@@ -87,7 +87,7 @@ class vdp(threading.Thread):
             self.vdp_addr_state = not self.vdp_addr_state
 
         else:
-            assert False
+            print('vdp::write_io: Unexpected port %02x' % a)
 
     def read_io(self, a):
         rc = 0
@@ -103,7 +103,7 @@ class vdp(threading.Thread):
             self.registers[2] &= 127
 
         else:
-            assert False
+            print('vdp::read_io: Unexpected port %02x' % a)
 
         return rc
 
@@ -161,7 +161,7 @@ class vdp(threading.Thread):
                 self.draw_sprite_part(spx + 8, spy + 8, offset + 24, rgb, i)
 
             else:
-                self.draw_sprite_part(spx, spy, pattern_index, colorfg, nr);
+                self.draw_sprite_part(spx, spy, pattern_index, rgb, i);
 
     def run(self):
         self.setName('msx-display')
@@ -173,9 +173,9 @@ class vdp(threading.Thread):
                 while self.redraw == False and self.stop_flag == False:
                     #self.poll_kb()
 
-                    self.cv.wait(0.01)
+                    self.cv.wait(0.02)
 
-                self.redraw = False
+            self.redraw = False
 
             #msg = self.debug_msg[0:79]
 
@@ -340,10 +340,11 @@ class vdp(threading.Thread):
 
             else:
                 #msg = 'Unsupported resolution'
+                print('Unsupported resolution')
                 pass
 
             took = time.time() - s
-            # print('fps: %f, cache hit: %.2f%%' % (1 / took, hit * 100.0 / hitdiv))
+            #print('fps: %f, cache hit: %.2f%%' % (1 / took, hit * 100.0 / hitdiv))
 
             #self.debug_msg_lock.acquire()
             #if self.debug_msg:

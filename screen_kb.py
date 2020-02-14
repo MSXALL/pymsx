@@ -2,6 +2,7 @@
 # released under AGPL v3.0
 
 import os
+import signal
 import struct
 import sys
 import threading
@@ -40,9 +41,9 @@ class screen_kb:
         # pipes for data from the VDP
         self.pipe_fv_in, self.pipe_fv_out = os.pipe()       
 
-        pid = os.fork()
+        self.pid = os.fork()
 
-        if pid == 0:
+        if self.pid == 0:
             self.vdp = vdp()
             self.vdp.start()
             
@@ -55,6 +56,8 @@ class screen_kb:
 
                     self.vdp.write_io(a, v)
 
+                    self.vdp.refresh()
+
                 elif type_ == screen_kb.MSG_GET_REG:
                     a = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
                     v = self.vdp.read_io(a)
@@ -65,11 +68,15 @@ class screen_kb:
 
             sys.exit(1)
 
+        print(self.pid)
+
         os.close(self.pipe_tv_in)
         os.close(self.pipe_fv_out)
 
     def write_io(self, a, v):
         assert a == 0x98 or a == 0x99
+
+        #print('Send %02x to %02x' % (a, v))
 
         os.write(self.pipe_tv_out, screen_kb.MSG_SET_REG.to_bytes(1, 'big'))
         os.write(self.pipe_tv_out, a.to_bytes(1, 'big'))
@@ -89,6 +96,8 @@ class screen_kb:
             v = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
             return v
 
+        print('unexpected port %02x' % a)
+
         return 0x00
 
     def debug(self, str_):
@@ -98,3 +107,8 @@ class screen_kb:
 
     def stop(self):
         self.stop_flag = True
+        os.kill(self.pid, signal.SIGKILL)
+        os.wait()
+
+        os.close(self.pipe_tv_out)
+        os.close(self.pipe_fv_in)

@@ -3,6 +3,7 @@
 
 import math
 import os
+import signal
 import sounddevice as sd
 import pygame.midi
 import struct
@@ -242,4 +243,5 @@ class sound():
 
         os.close(self.pipein)
         os.close(self.pipeout)
-        os.kill(-9, self.pid)
+        os.kill(self.pid, signal.SIGKILL)
+        os.wait()
