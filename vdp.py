@@ -34,7 +34,6 @@ class vdp(threading.Thread):
         self.surface = pygame.Surface((320, 192))
         self.arr = pygame.surfarray.array2d(self.screen)
 
-        self.redraw = False
         self.cv = threading.Condition()
 
         self.init_kb()
@@ -55,12 +54,6 @@ class vdp(threading.Thread):
 
     def rgb_to_i(self, r, g, b):
         return (r << 16) | (g << 8) | b
-
-    def refresh(self):
-        self.redraw = True
-
-        with self.cv:
-            self.cv.notify()
 
     def interrupts_enabled(self):
         return (self.registers[0] & 1) == 1
@@ -84,7 +77,6 @@ class vdp(threading.Thread):
             self.vdp_rw_pointer += 1
             self.vdp_rw_pointer &= 0x3fff
             self.vdp_addr_state = False
-            self.refresh()
             self.vdp_read_ahead = v
 
         elif a == 0x99:
@@ -95,7 +87,6 @@ class vdp(threading.Thread):
                 if (v & 128) == 128:
                     v &= 7
                     self.set_register(v, self.vdp_addr_b1)
-                    self.refresh()
 
                 else:
                     self.vdp_rw_pointer = ((v & 63) << 8) + self.vdp_addr_b1
@@ -231,15 +222,8 @@ class vdp(threading.Thread):
         self.setName('msx-display')
 
         while not self.stop_flag:
-            with self.cv:
-                self.poll_kb()
-
-                while self.redraw == False and self.stop_flag == False:
-                    self.poll_kb()
-
-                    self.cv.wait(0.01)  # MSX scans 50/60/s
-
-            self.redraw = False
+            self.poll_kb()
+            time.sleep(0.02)
 
             #msg = self.debug_msg[0:79]
 
@@ -247,7 +231,6 @@ class vdp(threading.Thread):
             hit = 0
             hitdiv = 1
 
-            # redraw
             vm = self.video_mode()
             if vm == 1:  # 'screen 2' (256 x 192)
                 bg_map    = (self.registers[2] &  15) << 10
