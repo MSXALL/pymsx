@@ -52,11 +52,11 @@ disk_sig = None
 #disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
-gen_rom_file = 'athletic.rom'
+#gen_rom_file = 'athletic.rom'
 #gen_rom_file = 'yamaha_msx1_diag.rom'
 #gen_rom_file = '../../msx/trunk/docs/testram.rom'
-gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
-gen_sig = gen_obj.get_signature() if gen_obj else None
+#gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
+#gen_sig = gen_obj.get_signature() if gen_obj else None
 
 subpage = 0x00
 
@@ -145,11 +145,13 @@ def write_io(a, v):
 
     debug('Set I/O register %02x to %02x' % (a, v))
 
+    io[a] = v
+
     if a == 0x91:  # printer out
         # FIXME handle strobe
         print('%c' % v, END='')
 
-    if a >= 0x98 and a <= 0x9b:
+    if (a >= 0x98 and a <= 0x9b) or a == 0xaa:
         dk.write_io(a, v)
         return
 
@@ -166,8 +168,6 @@ def write_io(a, v):
         for i in range(0, 4):
             pages[i] = (v >> (i * 2)) & 3
 
-    io[a] = v
-
 stop_flag = False
 
 def cpu_thread():
@@ -176,7 +176,6 @@ def cpu_thread():
     while not stop_flag:
         cpu.step()
 
-#dk = screen_kb_pygame(io)
 dk = screen_kb(io)
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)

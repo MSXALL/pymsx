@@ -1,6 +1,8 @@
 # (C) 2020 by Folkert van Heusden <mail@vanheusden.com>
 # released under AGPL v3.0
 
+# implements VDP and also kb because of pygame
+
 import pygame
 import sys
 import threading
@@ -17,7 +19,11 @@ class vdp(threading.Thread):
         self.vdp_addr_b1 = None
         self.vdp_read_ahead = 0
 
+        self.keyboard_row = 0
+
         self.registers = [ 0 ] * 8
+
+        self.keys_pressed = {}
 
         self.stop_flag = False
 
@@ -31,7 +37,15 @@ class vdp(threading.Thread):
         self.redraw = False
         self.cv = threading.Condition()
 
+        self.init_kb()
+
         super(vdp, self).__init__()
+
+    def init_kb(self):
+        self.keys = [ None ] * 16
+        self.keys[0] = [ pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7 ]
+        self.keys[6] = [ pygame.K_LSHIFT, pygame.K_LCTRL, None, pygame.K_CAPSLOCK, None, pygame.K_F1, pygame.K_F2, pygame.K_F3 ]
+        self.keys[7] = [ pygame.K_F4, pygame.K_F5, pygame.K_ESCAPE, pygame.K_TAB, None, pygame.K_BACKSPACE, None, pygame.K_RETURN ]
 
     def rgb_to_i(self, r, g, b):
         return (r << 16) | (g << 8) | b
@@ -86,8 +100,27 @@ class vdp(threading.Thread):
 
             self.vdp_addr_state = not self.vdp_addr_state
 
+        elif a == 0xaa:  # PPI register C
+            self.keyboard_row = v & 15
+
         else:
             print('vdp::write_io: Unexpected port %02x' % a)
+
+    def read_keyboard(self):
+        cur_row = self.keys[self.keyboard_row]
+        if not cur_row:
+            return 255
+
+        bits = 0
+
+        bit_nr = 0
+        for key in cur_row:
+            if key and key in self.keys_pressed and self.keys_pressed[key]:
+                bits |= 1 << bit_nr
+
+            bit_nr += 1
+
+        return bits ^ 0xff
 
     def read_io(self, a):
         rc = 0
@@ -101,6 +134,9 @@ class vdp(threading.Thread):
         elif a == 0x99:
             rc = self.registers[2]
             self.registers[2] &= 127
+
+        elif a == 0xa9:
+            rc = self.read_keyboard() 
 
         else:
             print('vdp::read_io: Unexpected port %02x' % a)
@@ -163,15 +199,32 @@ class vdp(threading.Thread):
             else:
                 self.draw_sprite_part(spx, spy, pattern_index, rgb, i);
 
+    def poll_kb(self):
+        events = pygame.event.get()
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.stop_flag = True
+                break
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    print('MARKER', file=sys.stderr)
+
+                self.keys_pressed[event.key] = True
+
+            elif event.type == pygame.KEYUP:
+                self.keys_pressed[event.key] = False
+
     def run(self):
         self.setName('msx-display')
 
         while not self.stop_flag:
             with self.cv:
-                #self.poll_kb()
+                self.poll_kb()
 
                 while self.redraw == False and self.stop_flag == False:
-                    #self.poll_kb()
+                    self.poll_kb()
 
                     self.cv.wait(0.02)
 

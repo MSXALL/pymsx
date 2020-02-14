@@ -9,8 +9,10 @@ import threading
 from vdp import vdp
 
 class screen_kb:
-    MSG_SET_REG = 0
-    MSG_GET_REG = 1
+    MSG_SET_IO = 0
+    MSG_GET_IO = 1
+    MSG_INTERRUPT = 2
+    MSG_GET_REG = 3
 
     def __init__(self, io):
         self.stop_flag = False
@@ -22,17 +24,9 @@ class screen_kb:
         self.debug_msg_lock = threading.Lock()
         self.debug_msg = None
 
-        self.init_kb()
         self.init_screen()
 
         super(screen_kb, self).__init__()
-
-    def init_kb(self):
-        self.kb_last_c = None
-        self.kb_char_scanned = self.kb_shift_scanned = False
-        self.kb_row_nr = None
-        self.kb_row = None
-        self.kb_shift = False
 
     def init_screen(self):
         # pipes for data to the VDP
@@ -50,7 +44,7 @@ class screen_kb:
             while True:
                 type_ = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
 
-                if type_ == screen_kb.MSG_SET_REG:
+                if type_ == screen_kb.MSG_SET_IO:
                     a = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
                     v = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
 
@@ -58,13 +52,24 @@ class screen_kb:
 
                     self.vdp.refresh()
 
-                elif type_ == screen_kb.MSG_GET_REG:
+                elif type_ == screen_kb.MSG_GET_IO:
                     a = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
                     v = self.vdp.read_io(a)
 
-                    os.write(self.pipe_fv_out, screen_kb.MSG_GET_REG.to_bytes(1, 'big'))
+                    os.write(self.pipe_fv_out, screen_kb.MSG_GET_IO.to_bytes(1, 'big'))
                     os.write(self.pipe_fv_out, a.to_bytes(1, 'big'))
                     os.write(self.pipe_fv_out, v.to_bytes(1, 'big'))
+
+                elif type_ == screen_kb.MSG_INTERRUPT:
+                    self.vdp.registers[2] |= 128
+
+                elif type_ == screen_kb.MSG_GET_REG:
+                    a = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
+                    os.write(self.pipe_fv_out, screen_kb.MSG_GET_REG.to_bytes(1, 'big'))
+                    os.write(self.pipe_fv_out, self.vdp.registers[a].to_bytes(1, 'big'))
+
+                else:
+                    print('Unexpected message %d' % type_)
 
             sys.exit(1)
 
@@ -73,22 +78,36 @@ class screen_kb:
         os.close(self.pipe_tv_in)
         os.close(self.pipe_fv_out)
 
+    def interrupt(self):
+        os.write(self.pipe_tv_out, screen_kb.MSG_INTERRUPT.to_bytes(1, 'big'))
+
+    def IE0(self):
+        reg = 1  # request VDP status register 1
+        os.write(self.pipe_tv_out, screen_kb.MSG_GET_REG.to_bytes(1, 'big'))
+        os.write(self.pipe_tv_out, reg.to_bytes(1, 'big'))
+
+        type_ = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
+        assert(type_ == screen_kb.MSG_GET_REG)
+        v = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
+
+        return (v & 32) == 32
+
     def write_io(self, a, v):
-        assert a == 0x98 or a == 0x99
+        assert a == 0x98 or a == 0x99 or a == 0xaa
 
         #print('Send %02x to %02x' % (a, v))
 
-        os.write(self.pipe_tv_out, screen_kb.MSG_SET_REG.to_bytes(1, 'big'))
+        os.write(self.pipe_tv_out, screen_kb.MSG_SET_IO.to_bytes(1, 'big'))
         os.write(self.pipe_tv_out, a.to_bytes(1, 'big'))
         os.write(self.pipe_tv_out, v.to_bytes(1, 'big'))
 
     def read_io(self, a):
         if a in (0x98, 0x99, 0xa9):
-            os.write(self.pipe_tv_out, screen_kb.MSG_GET_REG.to_bytes(1, 'big'))
+            os.write(self.pipe_tv_out, screen_kb.MSG_GET_IO.to_bytes(1, 'big'))
             os.write(self.pipe_tv_out, a.to_bytes(1, 'big'))
 
             type_ = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
-            assert type_ == screen_kb.MSG_GET_REG
+            assert type_ == screen_kb.MSG_GET_IO
 
             a_ = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
             assert a_ == a
