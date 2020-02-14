@@ -27,6 +27,8 @@ class vdp(threading.Thread):
         self.surface = pygame.Surface((320, 192))
         self.arr = pygame.surfarray.array2d(self.screen)
 
+        super(vdp, self).__init__()
+
     def rgb_to_i(self, r, g, b):
         return (r << 16) | (g << 8) | b
 
