@@ -34,7 +34,8 @@ class scc:
             self.scc_pages[bank] = and_
 
         elif a >= 0x9800 and a <= 0xafff0:
-            self.snd.set_scc(a & 0xff, v)
+            if self.snd:
+                self.snd.set_scc(a & 0xff, v)
 
         else:
             self.debug('SCC write to %04x not understood' % a)

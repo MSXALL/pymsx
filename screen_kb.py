@@ -1,29 +1,25 @@
 # (C) 2020 by Folkert van Heusden <mail@vanheusden.com>
 # released under AGPL v3.0
 
-import math
+import os
+import struct
 import sys
 import threading
-import time
+from vdp import vdp
 
-class screen_kb(threading.Thread):
+class screen_kb:
+    MSG_SET_REG = 0
+    MSG_GET_REG = 1
+
     def __init__(self, io):
-        self.ram = [ 0 ] * 16384
-        self.vdp_rw_pointer = 0
-        self.vdp_addr_state = False
-        self.vdp_addr_b1 = None
-        self.registers = [ 0 ] * 8
-        self.redraw = False
-        self.cv = threading.Condition()
         self.stop_flag = False
-        self.vdp_read_ahead = 0
         self.io = io
 
         self.keyboard_queue = []
         self.k_lock = threading.Lock()
 
-        self.debug_msg = None
         self.debug_msg_lock = threading.Lock()
+        self.debug_msg = None
 
         self.init_kb()
         self.init_screen()
@@ -38,35 +34,62 @@ class screen_kb(threading.Thread):
         self.kb_shift = False
 
     def init_screen(self):
-        pass
+        # pipes for data to the VDP
+        self.pipe_tv_in, self.pipe_tv_out = os.pipe()       
 
-    def interrupts_enabled(self):
-        return (self.registers[0] & 1) == 1
+        # pipes for data from the VDP
+        self.pipe_fv_in, self.pipe_fv_out = os.pipe()       
 
-    def interrupt(self):
-        self.registers[2] |= 128
+        pid = os.fork()
 
-    def video_mode(self):
-        m1 = (self.registers[1] >> 4) & 1;
-        m2 = (self.registers[1] >> 3) & 1;
-        m3 = (self.registers[0] >> 1) & 1;
+        if pid == 0:
+            self.vdp = vdp()
+            self.vdp.start()
+            
+            while True:
+                type_ = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
 
-        return (m1 << 2) | (m2 << 1) | m3
+                if type_ == screen_kb.MSG_SET_REG:
+                    a = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
+                    v = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
 
-    def getch(self, peek):
-        c = -1
+                    self.vdp.write_io(a, v)
 
-        self.k_lock.acquire()
+                elif type_ == screen_kb.MSG_GET_REG:
+                    a = struct.unpack('<B', os.read(self.pipe_tv_in, 1))[0]
+                    v = self.vdp.read_io(a)
 
-        if len(self.keyboard_queue) > 0:
-            c = self.keyboard_queue[0]
+                    os.write(self.pipe_fv_out, screen_kb.MSG_GET_REG.to_bytes(1, 'big'))
+                    os.write(self.pipe_fv_out, a.to_bytes(1, 'big'))
+                    os.write(self.pipe_fv_out, v.to_bytes(1, 'big'))
 
-            if not peek:
-                del self.keyboard_queue[0]
+            sys.exit(1)
 
-        self.k_lock.release()
+        os.close(self.pipe_tv_in)
+        os.close(self.pipe_fv_out)
 
-        return c
+    def write_io(self, a, v):
+        assert a == 0x98 or a == 0x99
+
+        os.write(self.pipe_tv_out, screen_kb.MSG_SET_REG.to_bytes(1, 'big'))
+        os.write(self.pipe_tv_out, a.to_bytes(1, 'big'))
+        os.write(self.pipe_tv_out, v.to_bytes(1, 'big'))
+
+    def read_io(self, a):
+        if a in (0x98, 0x99, 0xa9):
+            os.write(self.pipe_tv_out, screen_kb.MSG_GET_REG.to_bytes(1, 'big'))
+            os.write(self.pipe_tv_out, a.to_bytes(1, 'big'))
+
+            type_ = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
+            assert type_ == screen_kb.MSG_GET_REG
+
+            a_ = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
+            assert a_ == a
+
+            v = struct.unpack('<B', os.read(self.pipe_fv_in, 1))[0]
+            return v
+
+        return 0x00
 
     def debug(self, str_):
         self.debug_msg_lock.acquire()
@@ -75,111 +98,3 @@ class screen_kb(threading.Thread):
 
     def stop(self):
         self.stop_flag = True
-        self.refresh()
-        self.join()
-        self.stop2()
-
-    def stop2(self):
-        pass
-
-    def refresh(self):
-        self.redraw = True
-
-        with self.cv:
-            self.cv.notify()
-
-    def set_register(self, a, v):
-        self.registers[a] = v
-
-    def write_io(self, a, v):
-        if a == 0x98:
-            self.ram[self.vdp_rw_pointer] = v
-            self.vdp_rw_pointer += 1
-            self.vdp_rw_pointer &= 0x3fff
-            self.vdp_addr_state = False
-            self.refresh()
-            self.vdp_read_ahead = v
-
-        elif a == 0x99:
-            if self.vdp_addr_state == False:
-                self.vdp_addr_b1 = v
-
-            else:
-                if (v & 128) == 128:
-                    v &= 7
-                    self.set_register(v, self.vdp_addr_b1)
-
-                else:
-                    self.vdp_rw_pointer = ((v & 63) << 8) + self.vdp_addr_b1
-
-                    if (v & 64) == 0:
-                        self.vdp_read_ahead = self.ram[self.vdp_rw_pointer]
-                        self.vdp_rw_pointer += 1
-                        self.vdp_rw_pointer &= 0x3fff
-
-            self.vdp_addr_state = not self.vdp_addr_state
-
-    def read_io(self, a):
-        rc = 0
-
-        if a == 0x98:
-            rc = self.vdp_read_ahead
-            self.vdp_read_ahead = self.ram[self.vdp_rw_pointer]
-            self.vdp_rw_pointer += 1
-            self.vdp_rw_pointer &= 0x3fff
-
-        if a == 0x99:
-            rc = self.registers[2]
-            self.registers[2] &= 127
-
-        if a == 0xa9:
-            return self.get_keyboard()
-
-        return rc
-
-    def get_keyboard(self):
-        rc = 255
-
-        if self.kb_last_c == None:
-            self.kb_last_c = self.getch(False)
-
-            if self.kb_last_c == -1:
-                self.kb_last_c = None
-
-            else:
-                lrc = self.find_char_row(self.kb_last_c)
-
-                if lrc:
-                    self.kb_row_nr, self.kb_row, self.kb_shift = lrc
-                    print(lrc)
-
-                else:
-                    self.kb_last_c = None
-
-                self.kb_shift_scanned = False
-                self.kb_char_scanned = False
-
-        if (self.io[0xaa] & 15) == self.kb_row_nr:
-            fh = open('debug.log', 'a+')
-            fh.write('SCANNED\n')
-            fh.close()
-
-            self.kb_char_scanned = True
-            rc = self.kb_row
-
-        if (self.io[0xaa] & 15) == 6:
-            self.kb_shift_scanned = True
-
-            if self.kb_shift:
-                rc &= ~1
-
-        if self.kb_shift_scanned and self.kb_char_scanned:
-            self.kb_last_c = None
-            self.kb_row_nr = None
-            self.kb_row = None
-            self.kb_shift = False
-
-        if rc != 255:
-            print('rc', rc, file=sys.stderr)
-
-        return rc

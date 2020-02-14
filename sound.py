@@ -3,7 +3,7 @@
 
 import math
 import os
-import pyaudio
+import sounddevice as sd
 import pygame.midi
 import struct
 import sys
@@ -26,7 +26,7 @@ class sound():
         self.mul_scc_1 = self.mul_scc_2 = self.mul_scc_3 = self.mul_scc_4 = self.mul_scc_5 = 0.0
         self.vol_scc_1 = self.vol_scc_2 = self.vol_scc_3 = self.vol_scc_4 = self.vol_scc_5 = 0.0
 
-        self.sr = 22050
+        self.sr = 44100
 
         self.phase1 = self.phase2 = self.phase3 = 0
         self.f1 = self.f2 = self.f3 = 0
@@ -45,8 +45,7 @@ class sound():
         pid = os.fork()
 
         if pid == 0:
-            self.p = pyaudio.PyAudio()
-            self.stream = self.p.open(format=self.p.get_format_from_width(2, unsigned=False), channels=1, rate=self.sr, output=True, stream_callback=self.callback)
+            sd.OutputStream(channels=2, callback=self.callback, samplerate=self.sr)
 
             while True:
                 type_ = struct.unpack('<B', os.read(self.pipein, 1))[0]
@@ -77,8 +76,6 @@ class sound():
                 else:
                     assert False
 
-            self.stream.stop_stream()
-            self.stream.close()
             self.p.terminate()
             
             sys.exit(1)
@@ -126,17 +123,13 @@ class sound():
 
         return -(256 - v) if v & 128 else v
 
-    def callback(self, in_data, frame_count, time_info, status):
+    def callback(self, outdata, frame_count, time, status):
         with self.lock:
             self.p1a = 2.0 * math.pi * self.f1 / self.sr
 
             self.p2a = 2.0 * math.pi * self.f2 / self.sr
 
             self.p3a = 2.0 * math.pi * self.f3 / self.sr
-
-        b = [ 0 ] * frame_count
-
-        out = bytes()
 
         for i in range(0, frame_count):
             s = math.sin(self.phase1) * self.l1 + math.sin(self.phase2) * self.l2 + math.sin(self.phase3) * self.l3
@@ -149,14 +142,11 @@ class sound():
 
             self.td += 1.0
 
-            word = int(s / 8.0 * 32767)
-            out += struct.pack('<h', word)
+            outdata[i] = s / 8.0
 
             self.phase1 += self.p1a
             self.phase2 += self.p2a
             self.phase3 += self.p3a
-
-        return (out, pyaudio.paContinue)
 
     def set_scc(self, a, v):
         assert v >= 0 and v <= 255

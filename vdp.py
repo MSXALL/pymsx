@@ -1,24 +1,25 @@
 # (C) 2020 by Folkert van Heusden <mail@vanheusden.com>
 # released under AGPL v3.0
 
-import math
 import pygame
 import sys
 import threading
-import time
 
-from screen_kb import screen_kb
-
-class screen_kb_pygame(screen_kb):
-    def __init__(self, io):
+class vdp(threading.Thread):
+    def __init__(self):
         pygame.init()
 
-        super(screen_kb_pygame, self).__init__(io)
+        self.ram = [ 0 ] * 16384
 
-    def rgb_to_i(self, r, g, b):
-        return (r << 16) | (g << 8) | b
+        self.vdp_rw_pointer = 0
+        self.vdp_addr_state = False
+        self.vdp_addr_b1 = None
+        self.vdp_read_ahead = 0
 
-    def init_screen(self):
+        self.registers = [ 0 ] * 8
+
+        self.stop_flag = False
+
         # TMS9918 palette 
         self.rgb = [ self.rgb_to_i(0, 0, 0), self.rgb_to_i(0, 0, 0), self.rgb_to_i(33, 200, 66), self.rgb_to_i(94, 220, 120), self.rgb_to_i(84, 85, 237), self.rgb_to_i(125, 118, 252), self.rgb_to_i(212, 82, 77), self.rgb_to_i(66, 235, 245), self.rgb_to_i(252, 85, 84), self.rgb_to_i(255, 121, 120), self.rgb_to_i(212, 193, 84), self.rgb_to_i(231, 206, 128), self.rgb_to_i(33, 176, 59), self.rgb_to_i(201, 91, 186), self.rgb_to_i(204, 204, 204), self.rgb_to_i(255, 255, 255) ] 
 
@@ -26,150 +27,73 @@ class screen_kb_pygame(screen_kb):
         self.surface = pygame.Surface((320, 192))
         self.arr = pygame.surfarray.array2d(self.screen)
 
-    def stop2(self):
-        pass
+    def rgb_to_i(self, r, g, b):
+        return (r << 16) | (g << 8) | b
 
-    def find_char_row(self, c):
-        chars = { }
+    def interrupts_enabled(self):
+        return (self.registers[0] & 1) == 1
 
-        chars[')'] = ( 0, (1 << 0) ^ 0xff, True )
-        chars['0'] = ( 0, (1 << 0) ^ 0xff, False )
-        chars['!'] = ( 0, (1 << 1) ^ 0xff, True )
-        chars['1'] = ( 0, (1 << 1) ^ 0xff, False )
-        chars['@'] = ( 0, (1 << 2) ^ 0xff, True )
-        chars['2'] = ( 0, (1 << 2) ^ 0xff, False )
-        chars['#'] = ( 0, (1 << 3) ^ 0xff, True )
-        chars['3'] = ( 0, (1 << 3) ^ 0xff, False )
-        chars['$'] = ( 0, (1 << 4) ^ 0xff, True )
-        chars['4'] = ( 0, (1 << 4) ^ 0xff, False )
-        chars['%'] = ( 0, (1 << 5) ^ 0xff, True )
-        chars['5'] = ( 0, (1 << 5) ^ 0xff, False )
-        chars['^'] = ( 0, (1 << 6) ^ 0xff, True )
-        chars['6'] = ( 0, (1 << 6) ^ 0xff, False )
-        chars['&'] = ( 0, (1 << 7) ^ 0xff, True )
-        chars['7'] = ( 0, (1 << 7) ^ 0xff, False )
-        chars['*'] = ( 1, (1 << 0) ^ 0xff, True )
-        chars['8'] = ( 1, (1 << 0) ^ 0xff, False )
-        chars['('] = ( 1, (1 << 1) ^ 0xff, True )
-        chars['9'] = ( 1, (1 << 1) ^ 0xff, False )
-        chars['_'] = ( 1, (1 << 2) ^ 0xff, True )
-        chars['-'] = ( 1, (1 << 2) ^ 0xff, False )
-        chars['+'] = ( 1, (1 << 3) ^ 0xff, True )
-        chars['='] = ( 1, (1 << 3) ^ 0xff, False )
-        chars['|'] = ( 1, (1 << 4) ^ 0xff, True )
-        chars['\\'] = ( 1, (1 << 4) ^ 0xff, False )
-        chars['{'] = ( 1, (1 << 5) ^ 0xff, True )
-        chars['['] = ( 1, (1 << 5) ^ 0xff, False )
-        chars['}'] = ( 1, (1 << 6) ^ 0xff, True )
-        chars[']'] = ( 1, (1 << 6) ^ 0xff, False )
-        chars[':'] = ( 1, (1 << 7) ^ 0xff, True )
-        chars[';'] = ( 1, (1 << 7) ^ 0xff, False )
-        chars['"'] = ( 2, (1 << 0) ^ 0xff, True )
-        chars["'"] = ( 2, (1 << 0) ^ 0xff, False )
-        chars['~'] = ( 2, (1 << 1) ^ 0xff, True )
-        chars['`'] = ( 2, (1 << 1) ^ 0xff, False )
-        chars['<'] = ( 2, (1 << 2) ^ 0xff, True )
-        chars[','] = ( 2, (1 << 2) ^ 0xff, False )
-        chars['>'] = ( 2, (1 << 3) ^ 0xff, True )
-        chars['.'] = ( 2, (1 << 3) ^ 0xff, False )
-        chars['?'] = ( 2, (1 << 4) ^ 0xff, True )
-        chars['/'] = ( 2, (1 << 4) ^ 0xff, False )
-        chars['A'] = ( 2, (1 << 6) ^ 0xff, True )
-        chars['a'] = ( 2, (1 << 6) ^ 0xff, False )
-        chars['B'] = ( 2, (1 << 7) ^ 0xff, True )
-        chars['b'] = ( 2, (1 << 7) ^ 0xff, False )
-        chars['C'] = ( 3, (1 << 0) ^ 0xff, True )
-        chars['c'] = ( 3, (1 << 0) ^ 0xff, False )
-        chars['D'] = ( 3, (1 << 1) ^ 0xff, True )
-        chars['d'] = ( 3, (1 << 1) ^ 0xff, False )
-        chars['E'] = ( 3, (1 << 2) ^ 0xff, True )
-        chars['e'] = ( 3, (1 << 2) ^ 0xff, False )
-        chars['F'] = ( 3, (1 << 3) ^ 0xff, True )
-        chars['f'] = ( 3, (1 << 3) ^ 0xff, False )
-        chars['G'] = ( 3, (1 << 4) ^ 0xff, True )
-        chars['g'] = ( 3, (1 << 4) ^ 0xff, False )
-        chars['H'] = ( 3, (1 << 5) ^ 0xff, True )
-        chars['h'] = ( 3, (1 << 5) ^ 0xff, False )
-        chars['I'] = ( 3, (1 << 6) ^ 0xff, True )
-        chars['i'] = ( 3, (1 << 6) ^ 0xff, False )
-        chars['J'] = ( 3, (1 << 7) ^ 0xff, True )
-        chars['j'] = ( 3, (1 << 7) ^ 0xff, False )
-        chars['K'] = ( 4, (1 << 0) ^ 0xff, True )
-        chars['k'] = ( 4, (1 << 0) ^ 0xff, False )
-        chars['L'] = ( 4, (1 << 1) ^ 0xff, True )
-        chars['l'] = ( 4, (1 << 1) ^ 0xff, False )
-        chars['M'] = ( 4, (1 << 2) ^ 0xff, True )
-        chars['m'] = ( 4, (1 << 2) ^ 0xff, False )
-        chars['N'] = ( 4, (1 << 3) ^ 0xff, True )
-        chars['n'] = ( 4, (1 << 3) ^ 0xff, False )
-        chars['O'] = ( 4, (1 << 4) ^ 0xff, True )
-        chars['o'] = ( 4, (1 << 4) ^ 0xff, False )
-        chars['P'] = ( 4, (1 << 5) ^ 0xff, True )
-        chars['p'] = ( 4, (1 << 5) ^ 0xff, False )
-        chars['Q'] = ( 4, (1 << 6) ^ 0xff, True )
-        chars['q'] = ( 4, (1 << 6) ^ 0xff, False )
-        chars['R'] = ( 4, (1 << 7) ^ 0xff, True )
-        chars['r'] = ( 4, (1 << 7) ^ 0xff, False )
-        chars['S'] = ( 5, (1 << 0) ^ 0xff, True )
-        chars['s'] = ( 5, (1 << 0) ^ 0xff, False )
-        chars['T'] = ( 5, (1 << 1) ^ 0xff, True )
-        chars['t'] = ( 5, (1 << 1) ^ 0xff, False )
-        chars['U'] = ( 5, (1 << 2) ^ 0xff, True )
-        chars['u'] = ( 5, (1 << 2) ^ 0xff, False )
-        chars['V'] = ( 5, (1 << 3) ^ 0xff, True )
-        chars['v'] = ( 5, (1 << 3) ^ 0xff, False )
-        chars['W'] = ( 5, (1 << 4) ^ 0xff, True )
-        chars['w'] = ( 5, (1 << 4) ^ 0xff, False )
-        chars['X'] = ( 5, (1 << 5) ^ 0xff, True )
-        chars['x'] = ( 5, (1 << 5) ^ 0xff, False )
-        chars['Y'] = ( 5, (1 << 6) ^ 0xff, True )
-        chars['y'] = ( 5, (1 << 6) ^ 0xff, False )
-        chars['Z'] = ( 5, (1 << 7) ^ 0xff, True )
-        chars['z'] = ( 5, (1 << 7) ^ 0xff, False )
-        chars[pygame.K_F1] = ( 6, (1 << 5) ^ 0xff, False )
-        chars[pygame.K_F2] = ( 6, (1 << 6) ^ 0xff, False )
-        chars[pygame.K_F3] = ( 6, (1 << 7) ^ 0xff, False )
-        chars[pygame.K_F4] = ( 7, (1 << 0) ^ 0xff, False )
-        chars[pygame.K_F5] = ( 7, (1 << 1) ^ 0xff, False )
-        chars[pygame.K_F6] = ( 6, (1 << 5) ^ 0xff, True )
-        chars[pygame.K_F7] = ( 6, (1 << 6) ^ 0xff, True )
-        chars[pygame.K_F8] = ( 6, (1 << 7) ^ 0xff, True )
-        chars[pygame.K_F9] = ( 7, (1 << 0) ^ 0xff, True )
-        chars[pygame.K_F10] = ( 7, (1 << 1) ^ 0xff, True )
-        chars[pygame.K_BACKSPACE] = ( 7, (1 << 5) ^ 0xff, False )
-        chars[pygame.K_RETURN] = ( 7, (1 << 7) ^ 0xff, False )
-        chars[pygame.K_SPACE] = ( 8, (1 << 0) ^ 0xff, False )
-        chars[pygame.K_DELETE] = ( 8, (1 << 3) ^ 0xff, False )
-        chars[pygame.K_LEFT] = ( 8, (1 << 4) ^ 0xff, False )
-        chars[pygame.K_UP] = ( 8, (1 << 5) ^ 0xff, False )
-        chars[pygame.K_DOWN] = ( 8, (1 << 6) ^ 0xff, False )
-        chars[pygame.K_RIGHT] = ( 8, (1 << 7) ^ 0xff, False )
+    def interrupt(self):
+        self.registers[2] |= 128
 
-        if c.unicode in chars:
-            return chars[c.unicode]
+    def video_mode(self):
+        m1 = (self.registers[1] >> 4) & 1;
+        m2 = (self.registers[1] >> 3) & 1;
+        m3 = (self.registers[0] >> 1) & 1;
 
-        if c.key in chars:
-            return chars[c.key]
+        return (m1 << 2) | (m2 << 1) | m3
 
-        print('unicode %s / key %d not found' % (c.unicode, c.key), file=sys.stderr)
+    def set_register(self, a, v):
+        self.registers[a] = v
 
-        return None
+    def write_io(self, a, v):
+        if a == 0x98:
+            self.ram[self.vdp_rw_pointer] = v
+            self.vdp_rw_pointer += 1
+            self.vdp_rw_pointer &= 0x3fff
+            self.vdp_addr_state = False
+            self.refresh()
+            self.vdp_read_ahead = v
 
-    def poll_kb(self):
-        events = pygame.event.get()
+        elif a == 0x99:
+            if self.vdp_addr_state == False:
+                self.vdp_addr_b1 = v
 
-        for event in events:
-            if event.type == pygame.QUIT:
-                self.stop_flag = True
-                break
+            else:
+                if (v & 128) == 128:
+                    v &= 7
+                    self.set_register(v, self.vdp_addr_b1)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    print('MARKER', file=sys.stderr)
+                else:
+                    self.vdp_rw_pointer = ((v & 63) << 8) + self.vdp_addr_b1
 
-                self.k_lock.acquire()
-                self.keyboard_queue.append(event)
-                self.k_lock.release()
+                    if (v & 64) == 0:
+                        self.vdp_read_ahead = self.ram[self.vdp_rw_pointer]
+                        self.vdp_rw_pointer += 1
+                        self.vdp_rw_pointer &= 0x3fff
+
+            self.vdp_addr_state = not self.vdp_addr_state
+
+        else:
+            assert False
+
+    def read_io(self, a):
+        rc = 0
+
+        if a == 0x98:
+            rc = self.vdp_read_ahead
+            self.vdp_read_ahead = self.ram[self.vdp_rw_pointer]
+            self.vdp_rw_pointer += 1
+            self.vdp_rw_pointer &= 0x3fff
+
+        elif a == 0x99:
+            rc = self.registers[2]
+            self.registers[2] &= 127
+
+        else:
+            assert False
+
+        return rc
 
     def draw_sprite_part(self, off_x, off_y, pattern_offset, color, nr):
         sc = (self.registers[5] << 7) + nr * 16

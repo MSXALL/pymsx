@@ -11,8 +11,7 @@ from gen_rom import gen_rom
 from pagetype import PageType
 from scc import scc
 from z80 import z80
-from screen_kb_ncurses import screen_kb_ncurses
-#from screen_kb_pygame import screen_kb_pygame
+from screen_kb import screen_kb
 #from sound import sound
 from memmapper import memmap
 
@@ -53,9 +52,9 @@ disk_sig = None
 #disk_sig = disk_obj.get_signature() if disk_obj else None
 
 gen_sig = None
-#gen_rom_file = 'athletic.rom'
+gen_rom_file = 'athletic.rom'
 #gen_rom_file = 'yamaha_msx1_diag.rom'
-gen_rom_file = '../../msx/trunk/docs/testram.rom'
+#gen_rom_file = '../../msx/trunk/docs/testram.rom'
 gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
 gen_sig = gen_obj.get_signature() if gen_obj else None
 
@@ -178,8 +177,7 @@ def cpu_thread():
         cpu.step()
 
 #dk = screen_kb_pygame(io)
-dk = screen_kb_ncurses(io)
-dk.start()
+dk = screen_kb(io)
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)
 
