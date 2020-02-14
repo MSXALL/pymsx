@@ -12,7 +12,7 @@ from pagetype import PageType
 from scc import scc
 from z80 import z80
 from screen_kb import screen_kb
-#from sound import sound
+from sound import sound
 from memmapper import memmap
 
 abort_time = None # 60
@@ -37,13 +37,13 @@ def debug(x):
         fh.write('%s <%02x/%02x>\n' % (x, io[0xa8], subpage))
         fh.close()
 
-snd = None  # sound(debug)
+snd = sound(debug)
 
 scc_sig = None
-#scc_rom_file = 'NEMESIS2.ROM'
+scc_rom_file = 'NEMESIS2.ROM'
 #scc_rom_file = 'md1.rom'
-#scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
-#scc_sig = scc_obj.get_signature() if scc_obj else None
+scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
+scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
 #disk_rom_file = 'FSFD1.ROM'
@@ -123,6 +123,8 @@ def write_mem(a, v):
     slot[0][a & 0x3fff] = v
 
 def read_io(a):
+    global snd
+
     debug('Get I/O register %02x' % a)
 
     if (a >= 0x98 and a <= 0x9b) or a == 0xa9:
@@ -141,6 +143,8 @@ def read_io(a):
     return io[a]
  
 def write_io(a, v):
+    global snd
+
     assert v >= 0 and v <= 255
 
     debug('Set I/O register %02x to %02x' % (a, v))
