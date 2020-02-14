@@ -27,10 +27,19 @@ class vdp(threading.Thread):
         self.surface = pygame.Surface((320, 192))
         self.arr = pygame.surfarray.array2d(self.screen)
 
+        self.redraw = False
+        self.cv = threading.Condition()
+
         super(vdp, self).__init__()
 
     def rgb_to_i(self, r, g, b):
         return (r << 16) | (g << 8) | b
+
+    def refresh(self):
+        self.redraw = True
+
+        with self.cv:
+            self.cv.notify()
 
     def interrupts_enabled(self):
         return (self.registers[0] & 1) == 1
