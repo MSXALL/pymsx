@@ -51,6 +51,7 @@ class vdp(threading.Thread):
         self.keys[5] = [ pygame.K_s, pygame.K_t, pygame.K_u, pygame.K_v, pygame.K_w, pygame.K_x, pygame.K_y, pygame.K_z ]
         self.keys[6] = [ pygame.K_LSHIFT, pygame.K_LCTRL, None, pygame.K_CAPSLOCK, None, pygame.K_F1, pygame.K_F2, pygame.K_F3 ]
         self.keys[7] = [ pygame.K_F4, pygame.K_F5, pygame.K_ESCAPE, pygame.K_TAB, None, pygame.K_BACKSPACE, None, pygame.K_RETURN ]
+        self.keys[8] = [ pygame.K_SPACE, None, None, None, pygame.K_LEFT, pygame.K_UP, pygame.K_DOWN, pygame.K_RIGHT ]
 
     def rgb_to_i(self, r, g, b):
         return (r << 16) | (g << 8) | b
@@ -94,6 +95,7 @@ class vdp(threading.Thread):
                 if (v & 128) == 128:
                     v &= 7
                     self.set_register(v, self.vdp_addr_b1)
+                    self.refresh()
 
                 else:
                     self.vdp_rw_pointer = ((v & 63) << 8) + self.vdp_addr_b1
@@ -114,6 +116,7 @@ class vdp(threading.Thread):
     def read_keyboard(self):
         cur_row = self.keys[self.keyboard_row]
         if not cur_row:
+            print('kb fail', self.keyboard_row)
             return 255
 
         bits = 0
@@ -142,6 +145,9 @@ class vdp(threading.Thread):
 
         elif a == 0xa9:
             rc = self.read_keyboard() 
+
+            if rc != 255:
+                print(rc)
 
         else:
             print('vdp::read_io: Unexpected port %02x' % a)
@@ -402,7 +408,7 @@ class vdp(threading.Thread):
                 pass
 
             took = time.time() - s
-            #print('fps: %f, cache hit: %.2f%%' % (1 / took, hit * 100.0 / hitdiv))
+            # print('fps: %f, cache hit: %.2f%%' % (1 / took, hit * 100.0 / hitdiv))
 
             #self.debug_msg_lock.acquire()
             #if self.debug_msg:
