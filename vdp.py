@@ -137,9 +137,6 @@ class vdp(threading.Thread):
         elif a == 0xa9:
             rc = self.read_keyboard() 
 
-            if rc != 255:
-                print(rc)
-
         else:
             print('vdp::read_io: Unexpected port %02x' % a)
 

@@ -192,7 +192,7 @@ class sound():
 
     def read_io(self, a):
         if self.ri == 14:
-            self.psg_regs[self.ri] |= 48
+            self.psg_regs[self.ri] |= 63
  
         return self.psg_regs[self.ri]
 
