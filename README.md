@@ -6,6 +6,10 @@ To run, execute msx.py. In the current version you may want to redirect stderr t
 
 Run it with "-h" to see a list of options. At least "-b msxbiosbasic.rom" is required.
 
+If it is too slow, remove the debug code with the following command:
+
+sed -i 's/self.debug.*/pass/g' z80.py
+
 
 (C) 2020 by Folkert van Heusden <mail@vanheusden.com>
 released under AGPL v3.0
