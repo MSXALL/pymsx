@@ -49,15 +49,16 @@ class sound():
             self.stream = self.p.open(format=self.p.get_format_from_width(2, unsigned=False), channels=1, rate=self.sr, output=True, stream_callback=self.callback)
 
             while True:
-                type_ = struct.unpack('<B', os.read(self.pipein, 1))[0]
+                type_ = os.read(self.pipein, 1)[0]
 
                 if type_ == sound.T_AY_3_8910:
-                    a = struct.unpack('<B', os.read(self.pipein, 1))[0]
+                    data = os.read(self.pipein, 2)
+                    a = data[0]
                     if a > 15:
                         # self.debug('PSG: index out of range %d' % a)
                         break
 
-                    v = struct.unpack('<B', os.read(self.pipein, 1))[0]
+                    v = data[1]
 
                     # print('PSG: set reg %d to %d' % (a, v), file=sys.stderr)
 
@@ -67,8 +68,9 @@ class sound():
                         self.recalc_channels(False)
 
                 elif type_ == sound.SCC:
-                    a = struct.unpack('<B', os.read(self.pipein, 1))[0]
-                    v = struct.unpack('<B', os.read(self.pipein, 1))[0]
+                    data = os.read(self.pipein, 2)
+                    a = data[0]
+                    v = data[1]
 
                     with self.lock:
                         self.scc_regs[a] = v
@@ -164,9 +166,8 @@ class sound():
 
         self.scc_regs[a] = v
 
-        os.write(self.pipeout, sound.SCC.to_bytes(1, 'big'))
-        os.write(self.pipeout, a.to_bytes(1, 'big'))
-        os.write(self.pipeout, v.to_bytes(1, 'big'))
+        packet = ( sound.SCC, a, v )
+        os.write(self.pipeout, bytearray(packet))
 
     def recalc_scc_channels(self):
         nn_1 = ((self.scc_regs[0x81] & 15) << 8) + self.scc_regs[0x80]
@@ -204,9 +205,8 @@ class sound():
             self.psg_regs[self.ri] = v
             self.debug('Sound %02x: %02x (%d)' % (self.ri, v, v))
 
-            os.write(self.pipeout, sound.T_AY_3_8910.to_bytes(1, 'big'))
-            os.write(self.pipeout, self.ri.to_bytes(1, 'big'))
-            os.write(self.pipeout, v.to_bytes(1, 'big'))
+            packet = ( sound.T_AY_3_8910, self.ri, v )
+            os.write(self.pipeout, bytearray(packet))
 
             self.recalc_channels(True)
 
