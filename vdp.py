@@ -3,6 +3,8 @@
 
 # implements VDP and also kb because of pygame
 
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
 import pygame
 import sys
 import threading
@@ -244,7 +246,7 @@ class vdp(threading.Thread):
                 hitdiv = 32 * 24
 
                 for map_index in range(0, 32 * 24):
-                    block_nr    = (map_index >> 8) & 3
+                    block_nr = (map_index >> 8) & 3
 
                     if block_nr != pb:
                         cache = [ None ] * 256

@@ -15,10 +15,11 @@ from screen_kb import screen_kb
 from sound import sound
 from memmapper import memmap
 from rom import rom
+from optparse import OptionParser
 
 abort_time = None # 60
 
-debug_log = 'debug.log' # None to disable
+debug_log = None
 
 io_values = [ 0 ] * 256
 io_read = [ None ] * 256
@@ -35,40 +36,63 @@ def debug(x):
         fh.write('%s <%02x/%02x>\n' % (x, io_values[0xa8], subpage))
         fh.close()
 
-snd = sound(debug)
-
-# bb == bios/basic
-bb = rom('msxbiosbasic.rom', debug, 0x0000)
-bb_sig = bb.get_signature()
-
-scc_sig = None
-scc_rom_file = 'NEMESIS2.ROM'
-#scc_rom_file = 'md1.rom'
-scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
-scc_sig = scc_obj.get_signature() if scc_obj else None
-
-disk_sig = None
-#disk_rom_file = 'FSFD1.ROM'
-#disk_image_file = 'nondos.dsk'
-#disk_obj = disk(disk_rom_file, debug, disk_image_file) if disk_rom_file else None
-#disk_sig = disk_obj.get_signature() if disk_obj else None
-
-gen_sig = None
-#gen_rom_file = 'athletic.rom'
-#gen_rom_file = 'yamaha_msx1_diag.rom'
-#gen_rom_file = '../../msx/trunk/docs/testram.rom'
-#gen_obj = gen_rom(gen_rom_file, debug) if gen_rom_file else None
-#gen_sig = gen_obj.get_signature() if gen_obj else None
-
-subpage = 0x00
-
 mm = memmap(256, debug)
 mm_sig = mm.get_signature()
 
-slot_0 = ( bb_sig, None, None, mm_sig )
-slot_1 = ( bb_sig, disk_sig if disk_sig else gen_sig, scc_sig, mm_sig )
-slot_2 = ( None, None, scc_sig, mm_sig )
-slot_3 = ( None, None, None, mm_sig )
+slot_0 = [ None, None, None, mm_sig ]
+slot_1 = [ None, None, None, mm_sig ]
+slot_2 = [ None, None, None, mm_sig ]
+slot_3 = [ None, None, None, mm_sig ]
+
+bb_file = None
+
+parser = OptionParser()
+parser.add_option('-b', '--biosbasic', dest='bb_file', help='select BIOS/BASIC ROM')
+parser.add_option('-l', '--debug-log', dest='debug_log', help='logfile to write to (optional)')
+parser.add_option('-R', '--rom', dest='rom', help='select a simple ROM to use, format: slot:rom-filename')
+parser.add_option('-S', '--scc-rom', dest='scc_rom', help='select an SCC ROM to use, format: slot:rom-filename')
+parser.add_option('-D', '--disk-rom', dest='disk_rom', help='select a disk ROM to use, format: slot:rom-filename:disk-image.dsk')
+(options, args) = parser.parse_args()
+
+debug_log = options.debug_log
+
+if not options.bb_file:
+    print('No BIOS/BASIC ROM selected (e.g. msxbiosbasic.rom)')
+    sys.exit(1)
+
+# bb == bios/basic
+bb = rom(options.bb_file, debug, 0x0000)
+bb_sig = bb.get_signature()
+slot_0[0] = bb_sig
+slot_1[0] = bb_sig
+
+snd = sound(debug)
+
+if options.scc_rom:
+    parts = options.scc_rom.split(':')
+    scc_obj = scc(parts[1], snd, debug)
+    scc_sig = scc_obj.get_signature()
+    scc_slot = int(parts[0])
+    slot_1[scc_slot] = scc_sig
+    slot_2[scc_slot] = scc_sig
+
+if options.disk_rom:
+    parts = options.disk_rom.split(':')
+    disk_slot = int(parts[0])
+    disk_obj = disk(parts[1], debug, parts[2])
+    slot_1[disk_slot] = disk_obj.get_signature()
+
+if options.rom:
+    parts = options.rom.split(':')
+    rom_slot = int(parts[0])
+    rom_obj = gen_rom(parts[1], debug)
+    rom_sig = rom_obj.get_signature()
+    slot_1[rom_slot] = rom_sig
+    if len(rom_sig[0]) >= 32768:
+        slot_2[rom_slot] = rom_sig
+
+subpage = 0x00
+
 slots = ( slot_0, slot_1, slot_2, slot_3 )
 
 pages = [ 0, 0, 0, 0 ]

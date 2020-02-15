@@ -3,6 +3,7 @@
 
 import math
 import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
 import pyaudio
 import pygame.midi
 import struct
@@ -26,7 +27,7 @@ class sound():
         self.mul_scc_1 = self.mul_scc_2 = self.mul_scc_3 = self.mul_scc_4 = self.mul_scc_5 = 0.0
         self.vol_scc_1 = self.vol_scc_2 = self.vol_scc_3 = self.vol_scc_4 = self.vol_scc_5 = 0.0
 
-        self.sr = 22050
+        self.sr = 48000
 
         self.phase1 = self.phase2 = self.phase3 = 0
         self.f1 = self.f2 = self.f3 = 0
