@@ -81,8 +81,7 @@ class screen_kb:
         os.write(self.pipe_tv_out, screen_kb.MSG_INTERRUPT.to_bytes(1, 'big'))
 
     def IE0(self):
-        reg = 1  # request VDP status register 1
-        packet = [ screen_kb.MSG_GET_REG, reg ]
+        packet = [ screen_kb.MSG_GET_REG, 1 ]  # request VDP status register 1
         os.write(self.pipe_tv_out, bytearray(packet))
 
         data = os.read(self.pipe_fv_in, 2)
