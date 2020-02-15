@@ -22,7 +22,7 @@ class sound():
         self.prev_reg13 = None
 
         self.scc_regs = [ 0 ] * 256
-        self.td = 0
+        self.td1 = self.td2 = self.td3 = self.td4 = self.td5 = 0
         self.mul_scc_1 = self.mul_scc_2 = self.mul_scc_3 = self.mul_scc_4 = self.mul_scc_5 = 0.0
         self.vol_scc_1 = self.vol_scc_2 = self.vol_scc_3 = self.vol_scc_4 = self.vol_scc_5 = 0.0
 
@@ -152,13 +152,17 @@ class sound():
         for i in range(0, frame_count):
             s = math.sin(self.phase1) * self.l1 + math.sin(self.phase2) * self.l2 + math.sin(self.phase3) * self.l3
 
-            s += self.get_scc_sample(0x00, self.td * self.mul_scc_1) * self.vol_scc_1 / 128.0
-            s += self.get_scc_sample(0x20, self.td * self.mul_scc_2) * self.vol_scc_2 / 128.0
-            s += self.get_scc_sample(0x40, self.td * self.mul_scc_3) * self.vol_scc_3 / 128.0
-            s += self.get_scc_sample(0x60, self.td * self.mul_scc_4) * self.vol_scc_4 / 128.0
-            s += self.get_scc_sample(0x60, self.td * self.mul_scc_5) * self.vol_scc_5 / 128.0
+            s += self.get_scc_sample(0x00, self.td1) * self.vol_scc_1 / 128.0
+            s += self.get_scc_sample(0x20, self.td2) * self.vol_scc_2 / 128.0
+            s += self.get_scc_sample(0x40, self.td3) * self.vol_scc_3 / 128.0
+            s += self.get_scc_sample(0x60, self.td4) * self.vol_scc_4 / 128.0
+            s += self.get_scc_sample(0x60, self.td5) * self.vol_scc_5 / 128.0
 
-            self.td += 1.0
+            self.td1 += self.mul_scc_1
+            self.td2 += self.mul_scc_2
+            self.td3 += self.mul_scc_3
+            self.td4 += self.mul_scc_4
+            self.td5 += self.mul_scc_5
 
             word = int(s / 8.0 * 32767)
             out += struct.pack('<h', word)
@@ -195,10 +199,20 @@ class sound():
         self.mul_scc_4 = (freq_4 / self.sr) * 32.0
         self.mul_scc_5 = (freq_5 / self.sr) * 32.0
         self.vol_scc_1 = (self.scc_regs[0x8a] & 15) / 15.0 if self.scc_regs[0x8f] & 1 else 0
+        if self.vol_scc_1 == 0:
+            self.td1 = 0
         self.vol_scc_2 = (self.scc_regs[0x8b] & 15) / 15.0 if self.scc_regs[0x8f] & 2 else 0
+        if self.vol_scc_2 == 0:
+            self.td2 = 0
         self.vol_scc_3 = (self.scc_regs[0x8c] & 15) / 15.0 if self.scc_regs[0x8f] & 4 else 0
+        if self.vol_scc_3 == 0:
+            self.td3 = 0
         self.vol_scc_4 = (self.scc_regs[0x8d] & 15) / 15.0 if self.scc_regs[0x8f] & 8 else 0
+        if self.vol_scc_4 == 0:
+            self.td4 = 0
         self.vol_scc_5 = (self.scc_regs[0x8e] & 15) / 15.0 if self.scc_regs[0x8f] & 16 else 0
+        if self.vol_scc_5 == 0:
+            self.td5 = 0
 
     def read_io(self, a):
         if self.ri == 14:
