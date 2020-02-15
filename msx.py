@@ -19,7 +19,9 @@ abort_time = None # 60
 
 debug_log = 'debug.log' # None to disable
 
-io = [ 0 ] * 256
+io_values = [ 0 ] * 256
+io_read = [ None ] * 256
+io_write = [ None ] * 256
 
 subpage = 0x00
 
@@ -30,11 +32,11 @@ fh.close()
 
 def debug(x):
     global subpage
-    dk.debug('%s <%02x/%02x>' % (x, io[0xa8], subpage))
+    dk.debug('%s <%02x/%02x>' % (x, io_values[0xa8], subpage))
 
     if debug_log:
         fh = open(debug_log, 'a+')
-        fh.write('%s <%02x/%02x>\n' % (x, io[0xa8], subpage))
+        fh.write('%s <%02x/%02x>\n' % (x, io_values[0xa8], subpage))
         fh.close()
 
 snd = sound(debug)
@@ -122,55 +124,65 @@ def write_mem(a, v):
 
     slot[0][a & 0x3fff] = v
 
-def read_io(a):
+def read_page_layout(a):
+    return (pages[3] << 6) | (pages[2] << 4) | (pages[1] << 2) | pages[0]
+
+def write_page_layout(a, v):
+    for i in range(0, 4):
+        pages[i] = (v >> (i * 2)) & 3
+
+def printer_out(a, v):
+    # FIXME handle strobe
+    print('%c' % v, END='')
+
+def init_io():
+    global dk
+    global mm
     global snd
 
-    debug('Get I/O register %02x' % a)
+    if dk:
+        print('set screen')
+        for i in (0x98, 0x99, 0x9a, 0x9b):
+            io_read[i] = dk.read_io
+            io_write[i] = dk.write_io
 
-    if (a >= 0x98 and a <= 0x9b) or a == 0xa9:
-        return dk.read_io(a)
+        io_read[0xa9] = dk.read_io
 
-    if a == 0xa8:
-        return (pages[3] << 6) | (pages[2] << 4) | (pages[1] << 2) | pages[0]
+        io_write[0xaa] = dk.write_io
 
-    if a == 0xa2:
-        if snd:
-            return snd.read_io(a)
+    if snd:
+        print('set sound')
+        io_write[0xa0] = snd.write_io
+        io_write[0xa1] = snd.write_io
+        io_read[0xa2] = snd.read_io
 
-    if a >= 0xfc:
-        return mm.read_io(a)
+    print('set mm')
+    for i in range(0xfc, 0x100):
+        io_read[i] = mm.read_io
+        io_write[i] = mm.write_io
 
-    return io[a]
+    print('set mm')
+    io_read[0xa8] = read_page_layout
+    io_write[0xa8] = write_page_layout
+
+    print('set printer')
+    io_write[0x91] = printer_out
+
+def read_io(a):
+    global io_read
+
+    if io_read[a]:
+        return io_read[a](a)
+
+    return io_values[a]
  
 def write_io(a, v):
-    global snd
+    global io_write
 
-    assert v >= 0 and v <= 255
+    io_values[a] = v
 
-    debug('Set I/O register %02x to %02x' % (a, v))
-
-    io[a] = v
-
-    if a == 0x91:  # printer out
-        # FIXME handle strobe
-        print('%c' % v, END='')
-
-    if (a >= 0x98 and a <= 0x9b) or a == 0xaa:
-        dk.write_io(a, v)
-        return
-
-    if a == 0xa0 or a == 0xa1:
-        if snd:
-            snd.write_io(a, v)
-            return
-
-    if a >= 0xfc:
-        mm.write_io(a, v)
-        return
-
-    if a == 0xa8:
-        for i in range(0, 4):
-            pages[i] = (v >> (i * 2)) & 3
+    if io_write[a]:
+        io_write[a](a, v)
 
 stop_flag = False
 
@@ -180,9 +192,11 @@ def cpu_thread():
     while not stop_flag:
         cpu.step()
 
-dk = screen_kb(io)
+dk = screen_kb(io_values)
 
 cpu = z80(read_mem, write_mem, read_io, write_io, debug, dk)
+
+init_io()
 
 t = threading.Thread(target=cpu_thread)
 t.start()
