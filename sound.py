@@ -128,6 +128,15 @@ class sound():
 
         return -(256 - v) if v & 128 else v
 
+    def get_scc_sample(self, o, a):
+        v1 = self.get_scc_reg_s(o + (math.floor(a) & 0x1f))
+        m1 = a - math.floor(a)
+
+        v2 = self.get_scc_reg_s(o + (math.ceil(a) & 0x1f))
+        m2 = math.ceil(a) - a
+
+        return v1 * m2 + v2 * m1
+
     def callback(self, in_data, frame_count, time_info, status):
         with self.lock:
             self.p1a = 2.0 * math.pi * self.f1 / self.sr
@@ -143,11 +152,11 @@ class sound():
         for i in range(0, frame_count):
             s = math.sin(self.phase1) * self.l1 + math.sin(self.phase2) * self.l2 + math.sin(self.phase3) * self.l3
 
-            s += self.get_scc_reg_s(0x00 + (int(self.td * self.mul_scc_1) & 0x1f)) * self.vol_scc_1 / 128.0
-            s += self.get_scc_reg_s(0x20 + (int(self.td * self.mul_scc_2) & 0x1f)) * self.vol_scc_2 / 128.0
-            s += self.get_scc_reg_s(0x40 + (int(self.td * self.mul_scc_3) & 0x1f)) * self.vol_scc_3 / 128.0
-            s += self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_4) & 0x1f)) * self.vol_scc_4 / 128.0
-            s += self.get_scc_reg_s(0x60 + (int(self.td * self.mul_scc_5) & 0x1f)) * self.vol_scc_5 / 128.0
+            s += self.get_scc_sample(0x00, self.td * self.mul_scc_1) * self.vol_scc_1 / 128.0
+            s += self.get_scc_sample(0x20, self.td * self.mul_scc_2) * self.vol_scc_2 / 128.0
+            s += self.get_scc_sample(0x40, self.td * self.mul_scc_3) * self.vol_scc_3 / 128.0
+            s += self.get_scc_sample(0x60, self.td * self.mul_scc_4) * self.vol_scc_4 / 128.0
+            s += self.get_scc_sample(0x60, self.td * self.mul_scc_5) * self.vol_scc_5 / 128.0
 
             self.td += 1.0
 
