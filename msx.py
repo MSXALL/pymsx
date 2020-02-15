@@ -14,6 +14,7 @@ from z80 import z80
 from screen_kb import screen_kb
 from sound import sound
 from memmapper import memmap
+from rom import rom
 
 abort_time = None # 60
 
@@ -24,11 +25,6 @@ io_read = [ None ] * 256
 io_write = [ None ] * 256
 
 subpage = 0x00
-
-fh = open('msxbiosbasic.rom', 'rb')
-rom0 = [ int(b) for b in fh.read(16384) ]
-rom1 = [ int(b) for b in fh.read(16384) ]
-fh.close()
 
 def debug(x):
     global subpage
@@ -41,11 +37,15 @@ def debug(x):
 
 snd = sound(debug)
 
+# bb == bios/basic
+bb = rom('msxbiosbasic.rom', debug, 0x0000)
+bb_sig = bb.get_signature()
+
 scc_sig = None
-scc_rom_file = 'NEMESIS2.ROM'
+#scc_rom_file = 'NEMESIS2.ROM'
 #scc_rom_file = 'md1.rom'
-scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
-scc_sig = scc_obj.get_signature() if scc_obj else None
+#scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
+#scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
 #disk_rom_file = 'FSFD1.ROM'
@@ -66,8 +66,8 @@ mm = memmap(256, debug)
 mm_sig = mm.get_signature()
 
 slots = [ ] # slots
-slots.append(( (rom0, PageType.ROM), None, None, mm_sig ))
-slots.append(( (rom1, PageType.ROM), disk_sig if disk_sig else gen_sig, scc_sig, mm_sig ))
+slots.append(( bb_sig, None, None, mm_sig ))
+slots.append(( bb_sig, disk_sig if disk_sig else gen_sig, scc_sig, mm_sig ))
 slots.append(( None, None, scc_sig, mm_sig ))
 slots.append(( None, None, None, mm_sig ))
 
@@ -85,13 +85,10 @@ def read_mem(a):
     if slot == None:
         return 0xee
 
-    slot_type = slot[1]
+    if len(slot) != 3:
+        print(len(slot), a)
 
-    if slot_type in (PageType.SCC, PageType.DISK, PageType.MEMMAP):
-        obj = slot[2]
-        return obj.read_mem(a)
-
-    return slot[0][a & 0x3fff]
+    return slot[2].read_mem(a)
 
 def write_mem(a, v):
     global subpage
@@ -111,18 +108,7 @@ def write_mem(a, v):
         debug('Writing %02x to %04x which is not backed by anything' % (v, a))
         return
     
-    slot_type = slot[1]
-
-    if slot_type == PageType.ROM:
-        debug('Writing %02x to %04x which is ROM' % (v, a))
-        return
-    
-    if slot_type in (PageType.SCC, PageType.DISK, PageType.MEMMAP):
-        obj = slot[2]
-        obj.write_mem(a, v)
-        return
-
-    slot[0][a & 0x3fff] = v
+    slot[2].write_mem(a, v)
 
 def read_page_layout(a):
     return (pages[3] << 6) | (pages[2] << 4) | (pages[1] << 2) | pages[0]
