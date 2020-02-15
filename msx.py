@@ -42,10 +42,10 @@ bb = rom('msxbiosbasic.rom', debug, 0x0000)
 bb_sig = bb.get_signature()
 
 scc_sig = None
-#scc_rom_file = 'NEMESIS2.ROM'
+scc_rom_file = 'NEMESIS2.ROM'
 #scc_rom_file = 'md1.rom'
-#scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
-#scc_sig = scc_obj.get_signature() if scc_obj else None
+scc_obj = scc(scc_rom_file, snd, debug) if scc_rom_file else None
+scc_sig = scc_obj.get_signature() if scc_obj else None
 
 disk_sig = None
 #disk_rom_file = 'FSFD1.ROM'
@@ -65,11 +65,11 @@ subpage = 0x00
 mm = memmap(256, debug)
 mm_sig = mm.get_signature()
 
-slots = [ ] # slots
-slots.append(( bb_sig, None, None, mm_sig ))
-slots.append(( bb_sig, disk_sig if disk_sig else gen_sig, scc_sig, mm_sig ))
-slots.append(( None, None, scc_sig, mm_sig ))
-slots.append(( None, None, None, mm_sig ))
+slot_0 = ( bb_sig, None, None, mm_sig )
+slot_1 = ( bb_sig, disk_sig if disk_sig else gen_sig, scc_sig, mm_sig )
+slot_2 = ( None, None, scc_sig, mm_sig )
+slot_3 = ( None, None, None, mm_sig )
+slots = ( slot_0, slot_1, slot_2, slot_3 )
 
 pages = [ 0, 0, 0, 0 ]
 
