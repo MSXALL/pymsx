@@ -1,6 +1,6 @@
-* change msx.py (the top) for path names and such
+* change msx.py (the top) for path names (for ROM-files) and such
 
-* requires the (python3-)pygame package for python3
+* requires the (python3-)pygame and pyaudio packages for python3
 
 * tests.in and tests.expected are from fuse-emulator-1.5.7+dfsg1
 
